@@ -233,6 +233,12 @@ p code, li code, td code, .row code { background: var(--code-bg); padding: 1px 5
 }
 .chip:hover { text-decoration: none; opacity: .82; }
 .chip.plain { background: var(--card); color: var(--ink2); }
+/* Cross-reference links inside prose: readable as text first, clickable second.
+   A dotted underline rather than a solid one, so a table of them does not read
+   as a wall of blue. */
+a.xref { color: var(--ink2); text-decoration: none; border-bottom: 1px dotted var(--blue); }
+a.xref:hover { color: var(--blue); border-bottom-style: solid; text-decoration: none; }
+
 .tag { font-size: 11px; padding: 2px 9px; border-radius: 999px; font-weight: 500; }
 .tag.t1 { background: var(--warn-soft); color: var(--warn); }
 .tag.t2 { background: var(--blue-soft); color: var(--blue); }

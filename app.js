@@ -53,6 +53,57 @@
     return el('div', { class: 'chips' }, items);
   }
 
+  // --------------------------------------------------------------- linkifier
+  /*
+   * Turns technique names in prose into links to the page that explains them,
+   * from the vocabulary in data/lexicon.js. Applied only to the index-like
+   * tables -- the constraint lookup, the study tiers, the cue-to-reflex table --
+   * because those are the places you are scanning for "which technique is this",
+   * and because prose linked on every other word reads worse, not better.
+   *
+   * Alternatives are sorted longest-first so "binary search on the answer" wins
+   * over "binary search". Matching is case-insensitive but the original casing
+   * is preserved in the output.
+   */
+  var LEX = {}, LEX_RE = null;
+  (function buildLexicon() {
+    var lex = window.LEXICON || {};
+    var phrases = Object.keys(lex);
+    phrases.forEach(function (ph) {
+      var v = lex[ph], bits = v.split(':');
+      var href = bits[0] === 'pat' ? '#/dsa/pattern/' + bits[1] : '#/dsa/structure/' + bits[1];
+      LEX[ph.toLowerCase()] = href;
+    });
+    var keys = Object.keys(LEX).sort(function (x, y) { return y.length - x.length; });
+    if (!keys.length) return;
+    var esc = keys.map(function (k) { return k.replace(/[.*+?^${}()|[\]\\-]/g, '\\$&'); });
+    LEX_RE = new RegExp('\\b(' + esc.join('|') + ')\\b', 'gi');
+  })();
+
+  /** Returns a fragment with known technique names wrapped in links. */
+  function linkify(text) {
+    var out = document.createDocumentFragment();
+    if (!LEX_RE) { out.appendChild(document.createTextNode(text)); return out; }
+    LEX_RE.lastIndex = 0;
+    var last = 0, m;
+    while ((m = LEX_RE.exec(text)) !== null) {
+      var href = LEX[m[0].toLowerCase()];
+      if (!href) continue;
+      if (m.index > last) out.appendChild(document.createTextNode(text.slice(last, m.index)));
+      out.appendChild(a(href, m[0], 'xref'));
+      last = m.index + m[0].length;
+    }
+    out.appendChild(document.createTextNode(text.slice(last)));
+    return out;
+  }
+
+  /** A <td>/<span> whose text has been linkified. */
+  function linked(tag, cls, text) {
+    var n = el(tag, cls ? { class: cls } : {});
+    n.appendChild(linkify(text));
+    return n;
+  }
+
   // ------------------------------------------------------- indexes (derived)
   var P = window.PATTERNS.items;
   var S = window.STRUCTURES.items;
@@ -314,7 +365,7 @@
       ])]);
       B.constraints.rows.forEach(function (r) {
         t.appendChild(el('tr', {}, [
-          el('td', { class: 'n', text: r[0] }), el('td', { class: 'k', text: r[1] }), el('td', { text: r[2] }),
+          el('td', { class: 'n', text: r[0] }), el('td', { class: 'k', text: r[1] }), linked('td', '', r[2]),
         ]));
       });
       return frag([head(B.constraints.title), el('p', { class: 'tagline', text: B.constraints.note }), t]);
@@ -333,7 +384,7 @@
           return frag([
             el('h2', { class: 'sec', text: tier.name + ' — ' + tier.odds }),
             el('div', { class: 'rows' }, tier.topics.map(function (x) {
-              return el('div', { class: 'row' }, [el('b', { text: x[0] }), el('span', { text: x[1] })]);
+              return el('div', { class: 'row' }, [linked('b', '', x[0]), linked('span', '', x[1])]);
             })),
           ]);
         }))]);
@@ -376,7 +427,7 @@
     if (id === 'cues') {
       var t = el('table', {}, [el('tr', {}, [el('th', { text: 'Cue' }), el('th', { text: 'Reach for' })])]);
       R.cues.rows.forEach(function (r) {
-        t.appendChild(el('tr', {}, [el('td', { class: 'cue', text: r[0] }), el('td', { text: r[1] })]));
+        t.appendChild(el('tr', {}, [el('td', { class: 'cue', text: r[0] }), linked('td', '', r[1])]));
       });
       return frag([head(R.cues.title, R.cues.note), t]);
     }
@@ -700,7 +751,9 @@
   var q = document.getElementById('q');
   function applyFilter() {
     var term = (q.value || '').trim().toLowerCase();
-    var blocks = main.querySelectorAll('.tile, .prob, .dev, .card');
+    // `.rows .row` included so the filter also bites on the tier lists and the
+    // signal/idea/cost blocks, which were previously untouched by it.
+    var blocks = main.querySelectorAll('.tile, .prob, .dev, .card, .rows .row, .steps > li');
     blocks.forEach(function (b) {
       b.classList.toggle('hidden', !!term && b.textContent.toLowerCase().indexOf(term) === -1);
     });

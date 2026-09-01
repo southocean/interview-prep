@@ -33,7 +33,15 @@ open/shut choice per group is remembered. A group containing the page you are on
 is always forced open, so a cross-link never drops you into a hidden section, and
 that forced state is not written back over a choice you made.
 
-**Filter** — narrows the cards, tiles and table rows on the current page.
+**Filter** — narrows the cards, tiles, rows and table rows on the current page.
+
+**Cross-reference links** — technique names in the constraint table, the study
+tiers and the cue→reflex table are links to the page that explains them, so you
+can jump from "sweep" straight to the sweep page. The vocabulary lives in
+`data/lexicon.js` and is checked by the graph validator, so a typo fails the
+check rather than rendering a dead link. It is deliberately not exhaustive:
+terms with no page (Floyd-Warshall, coordinate compression) stay plain text,
+because a link that lands somewhere approximate is worse than no link.
 
 ## How the pages interconnect
 
