@@ -121,11 +121,30 @@ a:hover { text-decoration: underline; }
 }
 
 /* ============================================================== sidebar == */
-.s-group { margin-bottom: 22px; }
+.s-group { margin-bottom: 6px; }
 .s-title {
+  display: flex; align-items: center; gap: 8px; cursor: pointer;
   font: 500 11px/1.4 var(--font); letter-spacing: .1em; text-transform: uppercase;
-  color: var(--sec2); padding: 0 10px 7px;
+  color: var(--sec2); padding: 8px 10px; border-radius: 7px; list-style: none;
 }
+.s-title::-webkit-details-marker { display: none; }
+.s-title:hover { background: var(--card); color: var(--sec); }
+/* Chevron drawn from a border so there is no glyph to load or misalign. */
+.s-title::before {
+  content: ""; flex: 0 0 auto; width: 5px; height: 5px;
+  border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor;
+  transform: rotate(-45deg); margin-left: 2px; margin-right: 2px;
+  transition: transform 120ms ease;
+}
+details[open] > .s-title::before { transform: rotate(45deg); }
+.s-name { flex: 1 1 auto; }
+.s-count {
+  flex: 0 0 auto; font-family: var(--mono); font-size: 10px; letter-spacing: 0;
+  color: var(--sec2); background: var(--card); padding: 1px 6px; border-radius: 999px;
+}
+details[open] > .s-title .s-count { background: transparent; }
+details.s-group > .s-link { margin-left: 12px; }
+details.s-group { padding-bottom: 6px; }
 .s-link {
   display: flex; align-items: baseline; gap: 8px;
   padding: 6px 10px; border-radius: 7px; font-size: 13.5px; color: var(--ink2);

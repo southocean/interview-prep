@@ -27,6 +27,12 @@ and a page per item.
 **Theme** — the Auto / Light / Dark control in the header. Auto follows the OS.
 The choice is stored and applied before first paint, so it never flashes.
 
+**Sidebar** — collapsible groups. Foundations is open by default and the long
+lists start shut, so the panel is five lines rather than thirty-nine. Your
+open/shut choice per group is remembered. A group containing the page you are on
+is always forced open, so a cross-link never drops you into a hidden section, and
+that forced state is not written back over a choice you made.
+
 **Filter** — narrows the cards, tiles and table rows on the current page.
 
 ## How the pages interconnect

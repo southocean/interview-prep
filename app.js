@@ -93,6 +93,9 @@
     try { data = JSON.parse(localStorage.getItem(key) || '{}'); } catch (e) {}
     return {
       get: function (k) { return !!data[k]; },
+      // Distinguishes "never chosen" from "chosen false", which the sidebar
+      // needs: an unset group falls back to its default, a set one does not.
+      has: function (k) { return Object.prototype.hasOwnProperty.call(data, k); },
       set: function (k, v) {
         data[k] = v;
         try { localStorage.setItem(key, JSON.stringify(data)); } catch (e) {}
@@ -102,6 +105,7 @@
   }
   var reviewed = store('prep-progress');
   var solved = store('prep-problems');
+  var sideOpen = store('prep-side');
 
   // ------------------------------------------------------------------- theme
   (function theme() {
@@ -527,8 +531,54 @@
   }
 
   // ---------------------------------------------------------------- sidebar
-  function sGroup(title, links) {
-    return el('div', { class: 's-group' }, [el('div', { class: 's-title', text: title })].concat(links));
+  /**
+   * A collapsible sidebar group.
+   *
+   * Open state resolves in three steps, in this order:
+   *   1. If the current page is inside the group, it is FORCED open. Otherwise a
+   *      cross-link from a pattern page to a structure page would land you in a
+   *      collapsed section with no visible context.
+   *   2. Otherwise, whatever the user last chose for this group.
+   *   3. Otherwise the default -- Foundations open, the long lists shut.
+   *
+   * A forced-open group is not persisted, so navigating somewhere never
+   * silently rewrites a preference the user set deliberately.
+   */
+  function sGroup(key, title, links, defaultOpen) {
+    var hasActive = links.some(function (l) { return l.getAttribute('aria-current'); });
+    var open = hasActive ? true
+      : sideOpen.has(key) ? sideOpen.get(key)
+      : defaultOpen !== false;
+
+    var d = el('details', { class: 's-group' });
+    if (open) d.setAttribute('open', '');
+    d.dataset.key = key;
+    d.dataset.forced = hasActive ? '1' : '';
+
+    d.appendChild(el('summary', { class: 's-title' }, [
+      el('span', { class: 's-name', text: title }),
+      el('span', { class: 's-count', text: String(links.length) }),
+    ]));
+    links.forEach(function (l) { d.appendChild(l); });
+    return d;
+  }
+
+  /* `toggle` is dispatched ASYNCHRONOUSLY, so setting `open` before the listener
+     exists still delivers an event afterwards. Comparing against the state we
+     rendered tells the two apart exactly: a real user toggle always differs from
+     it, the spurious initial event never does. Without this, merely visiting a
+     page rewrites the preference for every group on it. */
+  function wireGroups() {
+    side.querySelectorAll('details.s-group').forEach(function (d) {
+      d.dataset.was = d.open ? '1' : '0';
+      d.addEventListener('toggle', function () {
+        var now = d.open ? '1' : '0';
+        if (now === d.dataset.was) return;      // the initial echo, not a click
+        d.dataset.was = now;
+        if (d.dataset.forced === '1' && d.open) return;  // opened for you, not by you
+        sideOpen.set(d.dataset.key, d.open);
+      });
+    });
   }
   function sLink(href, label, opts) {
     opts = opts || {};
@@ -540,38 +590,50 @@
     return link;
   }
 
+  function patLink(p, r) {
+    return sLink('#/dsa/pattern/' + p.id, p.name, {
+      n: String(p.rank), active: r.kind === 'pattern' && r.id === p.id, done: reviewed.get('pat-' + p.id),
+    });
+  }
+
   function buildSidebar(r) {
     side.innerHTML = '';
 
     if (r.sec === 'dsa') {
-      side.appendChild(sGroup('Foundations', FOUND.map(function (f) {
-        return sLink('#/dsa/found/' + f.id, f.title, { active: r.kind === 'found' && r.id === f.id });
-      })));
-      side.appendChild(sGroup('Patterns', patsSorted.map(function (p) {
-        return sLink('#/dsa/pattern/' + p.id, p.name, {
-          n: String(p.rank), active: r.kind === 'pattern' && r.id === p.id, done: reviewed.get('pat-' + p.id),
-        });
-      })));
-      side.appendChild(sGroup('Structures', strsSorted.map(function (s) {
-        return sLink('#/dsa/structure/' + s.id, s.name, {
-          active: r.kind === 'structure' && r.id === s.id, done: reviewed.get('str-' + s.id),
-        });
-      })));
-      return;
-    }
+      /* Patterns split by tier rather than listed as one run of 22. The split
+         is the importance signal: the first group is what you will actually be
+         asked, and it stays a readable length when open. */
+      var t1 = patsSorted.filter(function (p) { return p.tier === 1; });
+      var t23 = patsSorted.filter(function (p) { return p.tier !== 1; });
 
-    if (r.sec === 'reflexes') {
-      side.appendChild(sGroup('Reflexes', REF_PAGES.map(function (x) {
+      side.appendChild(sGroup('dsa-found', 'Foundations',
+        FOUND.map(function (f) {
+          return sLink('#/dsa/found/' + f.id, f.title, { active: r.kind === 'found' && r.id === f.id });
+        }), true));
+
+      side.appendChild(sGroup('dsa-pat1', 'Patterns · expect these',
+        t1.map(function (p) { return patLink(p, r); }), false));
+
+      side.appendChild(sGroup('dsa-pat2', 'Patterns · likely and rarer',
+        t23.map(function (p) { return patLink(p, r); }), false));
+
+      side.appendChild(sGroup('dsa-str', 'Structures',
+        strsSorted.map(function (s) {
+          return sLink('#/dsa/structure/' + s.id, s.name, {
+            active: r.kind === 'structure' && r.id === s.id, done: reviewed.get('str-' + s.id),
+          });
+        }), false));
+
+    } else if (r.sec === 'reflexes') {
+      side.appendChild(sGroup('ref', 'Reflexes', REF_PAGES.map(function (x) {
         return sLink('#/reflexes/' + x.id, x.get().title, { active: r.kind === x.id });
-      })));
-      return;
-    }
+      }), true));
 
-    if (r.sec === 'problems') {
-      side.appendChild(sGroup('All problems', [
+    } else if (r.sec === 'problems') {
+      side.appendChild(sGroup('prob-all', 'All problems', [
         sLink('#/problems', 'The full list', { active: !r.kind, n: String(solved.count()) }),
-      ]));
-      side.appendChild(sGroup('By pattern', patsSorted.filter(function (p) {
+      ], true));
+      side.appendChild(sGroup('prob-pat', 'Drill one pattern', patsSorted.filter(function (p) {
         return (probsByPat[p.id] || []).length;
       }).map(function (p) {
         var mine = probsByPat[p.id];
@@ -579,20 +641,20 @@
         return sLink('#/problems/pattern/' + p.id, p.name, {
           n: got + '/' + mine.length, active: r.kind === 'pattern' && r.id === p.id,
         });
-      })));
-      return;
-    }
+      }), false));
 
-    if (r.sec === 'frontend') {
-      side.appendChild(sGroup('Front-end round', window.FRONTEND.groups.map(function (g, i) {
+    } else if (r.sec === 'frontend') {
+      side.appendChild(sGroup('fe', 'Front-end round', window.FRONTEND.groups.map(function (g, i) {
         return sLink('#/frontend/g/' + i, g.name, { active: r.kind === 'g' && r.id === String(i) });
-      })));
-      return;
+      }), true));
+
+    } else {
+      side.appendChild(sGroup('todo', 'Not written yet', [
+        sLink('#/' + r.sec, r.sec === 'design' ? 'System design' : 'Googleyness', { active: true }),
+      ], true));
     }
 
-    side.appendChild(sGroup('Not written yet', [
-      sLink('#/' + r.sec, r.sec === 'design' ? 'System design' : 'Googleyness', { active: true }),
-    ]));
+    wireGroups();
   }
 
   // ------------------------------------------------------------------ render
