@@ -8,7 +8,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 
 const win = {};
 win.ANIMS = {};
-for (const f of ['patterns', 'structures', 'techniques', 'deviations', 'anims', 'anims-b']) {
+for (const f of ['patterns', 'structures', 'techniques', 'deviations', 'anims', 'anims-b', 'anims-c']) {
   new Function('window', readFileSync(`data/${f}.js`, 'utf8'))(win);
 }
 const anims = new Set(Object.keys(win.ANIMS));

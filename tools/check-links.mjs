@@ -7,7 +7,7 @@
 import { readFileSync } from 'node:fs';
 
 const FILES = ['base', 'lexicon', 'tiers', 'patterns', 'structures', 'techniques',
-  'refs', 'anims', 'anims-b', 'worked', 'deviations', 'problems', 'frontend'];
+  'refs', 'anims', 'anims-b', 'anims-c', 'worked', 'deviations', 'problems', 'frontend'];
 
 // The data files assign to `window.X`, so give them a window to assign to.
 const win = {};

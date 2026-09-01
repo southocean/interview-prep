@@ -24,7 +24,7 @@
  */
 import { readFileSync, existsSync } from 'node:fs';
 
-const FILES = ['patterns', 'structures', 'techniques', 'deviations', 'anims', 'anims-b'];
+const FILES = ['patterns', 'structures', 'techniques', 'deviations', 'anims', 'anims-b', 'anims-c'];
 const win = {};
 win.ANIMS = {};   // anims-b.js merges into this with Object.assign
 for (const f of FILES) {
