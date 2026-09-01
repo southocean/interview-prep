@@ -271,6 +271,27 @@ body.reviewing .qa[open] > summary { font-weight: 500; }
 .prob.is-solved { border-left: 3px solid var(--good); }
 .count { color: var(--sec); font-size: 14px; margin: 0 0 18px; }
 
+/* --------------------------------------------- deviations as question -- */
+.dev.qa-dev { padding: 0; overflow: hidden; }
+.dev-q {
+  display: flex; align-items: baseline; gap: 12px;
+  padding: 14px 18px; background: var(--blue-soft);
+}
+.dev-n {
+  flex: 0 0 auto; font-family: var(--mono); font-size: 12px; font-weight: 600;
+  color: var(--blue);
+}
+.dev-q h4 { margin: 0; color: var(--ink); font: 500 15px/1.4 var(--font); }
+.dev-body { padding: 14px 18px 4px; }
+.dev-body p { font-size: 14px; margin: 0 0 10px; }
+.dev-base { color: var(--sec); }
+.dev-base b { color: var(--sec); }
+.dev-change { color: var(--ink2); }
+.dev-change b { color: var(--blue); }
+.dev-why { color: var(--ink2); }
+.dev-why b { color: var(--good); }
+.dev-body pre { margin-bottom: 12px; }
+
 /* ------------------------------------------------------ worked example -- */
 .worked { background: var(--blue-soft); border-radius: 12px; padding: 16px 18px; margin-bottom: 16px; }
 .w-problem { margin: 0 0 8px; color: var(--ink); font-size: 15px; }

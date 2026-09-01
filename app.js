@@ -251,6 +251,58 @@
     animTimers = [];
   }
 
+  // ----------------------------------------------------------- deviations
+  /*
+   * Deviations as question and answer. Each one is a real question, then the
+   * DIFF from the template on this page -- what it already does, what you
+   * change, the changed lines only, and why that is correct.
+   *
+   * The code block being a diff rather than a whole solution is the point:
+   * reprinting four full solutions teaches four solutions, whereas showing the
+   * two lines that move teaches one solution and three adaptations, which is
+   * what an interview actually tests.
+   *
+   * Prefers DEVIATIONS[id]; falls back to the older inline [name, tell, do]
+   * array so a page that has not been migrated still renders.
+   */
+  function deviationsBlock(id, inline) {
+    var qa = (window.DEVIATIONS || {})[id];
+
+    if (!qa) {
+      if (!inline || !inline.length) return null;
+      return frag([
+        el('h2', { class: 'sec', text: 'Deviations' }),
+        el('p', { class: 'meta', text: 'Not yet rewritten as question and answer.' }),
+        frag(inline.map(function (d) {
+          return el('div', { class: 'dev' }, [
+            el('h4', { text: d[0] }),
+            el('p', { class: 'tell', text: 'Tell: ' + d[1] }),
+            el('p', { class: 'do', text: d[2] }),
+          ]);
+        })),
+      ]);
+    }
+
+    return frag([
+      el('h2', { class: 'sec', text: 'Deviations — ' + qa.length + ' questions on top of the template' }),
+      el('p', { class: 'meta', text: 'The template is the textbook version. These are the questions actually asked, each with the diff: what changes, and why that change is correct.' }),
+      frag(qa.map(function (d, n) {
+        return el('div', { class: 'dev qa-dev' }, [
+          el('div', { class: 'dev-q' }, [
+            el('span', { class: 'dev-n', text: 'Q' + (n + 1) }),
+            el('h4', { text: d.q }),
+          ]),
+          el('div', { class: 'dev-body' }, [
+            el('p', { class: 'dev-base' }, [el('b', { text: 'Template already does: ' }), document.createTextNode(d.base)]),
+            el('p', { class: 'dev-change' }, [el('b', { text: 'You change: ' }), document.createTextNode(d.change)]),
+            pre(d.code),
+            el('p', { class: 'dev-why' }, [el('b', { text: 'Why: ' }), document.createTextNode(d.why)]),
+          ]),
+        ]);
+      })),
+    ]);
+  }
+
   // -------------------------------------------------------- worked example
   /*
    * The concrete problem, reasoned through, placed BEFORE the template. Reading
@@ -453,15 +505,7 @@
       el('h2', { class: 'sec', text: 'Template' }),
       pre(p.template),
 
-      el('h2', { class: 'sec', text: 'Deviations — what interviewers actually ask' }),
-      el('p', { class: 'meta', text: 'The template gets you the textbook version. These are the variations, and each one changes the code in a specific way. Learn to spot the tell.' }),
-      frag(p.deviations.map(function (d) {
-        return el('div', { class: 'dev' }, [
-          el('h4', { text: d[0] }),
-          el('p', { class: 'tell', text: 'Tell: ' + d[1] }),
-          el('p', { class: 'do', text: d[2] }),
-        ]);
-      })),
+      deviationsBlock(p.id, p.deviations),
 
       el('h2', { class: 'sec', text: 'Common bugs' }),
       el('ul', {}, (p.bugs || []).map(function (b) { return el('li', { text: b }); })),
@@ -557,6 +601,8 @@
 
       el('h2', { class: 'sec', text: 'Code' }),
       pre(t.code),
+
+      deviationsBlock(t.id, null),
 
       el('h2', { class: 'sec', text: 'The thing that goes wrong' }),
       el('p', { class: 'gotcha', text: t.gotcha }),

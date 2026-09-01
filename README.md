@@ -48,12 +48,16 @@ because a link that lands somewhere approximate is worse than no link.
 
 This is what makes it a site rather than a document.
 
-Every **pattern page** carries **deviations**: the variations interviewers
-actually ask, each with the tell that identifies it and what specifically changes
-in the code. That section matters more than the template — the template is the
-textbook version, the deviations are the interview. Sliding window has five,
-including the one that costs people the problem: for *longest* you record while
-the window is valid, for *shortest* you record inside the shrink.
+Every **pattern and technique page** carries **deviations, written as question
+and answer**: a real interview question, then the diff from the template — what
+it already does, what you change, the changed lines only, and why that is
+correct. 141 of them across all 47 pages.
+
+That section matters more than the template, because the template is the
+textbook version and the deviations are the interview. The code block being a
+**diff rather than a whole solution** is deliberate: reprinting four complete
+solutions teaches four solutions, whereas showing the two lines that move
+teaches one solution and three adaptations.
 
 Pattern pages link to the structures they use, related patterns, and every
 problem on them. **Structure pages** carry how it is built, a costs table, what
