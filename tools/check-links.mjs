@@ -7,10 +7,11 @@
 import { readFileSync } from 'node:fs';
 
 const FILES = ['base', 'lexicon', 'tiers', 'patterns', 'structures', 'techniques',
-  'refs', 'anims', 'worked', 'deviations', 'problems', 'frontend'];
+  'refs', 'anims', 'anims-b', 'worked', 'deviations', 'problems', 'frontend'];
 
 // The data files assign to `window.X`, so give them a window to assign to.
 const win = {};
+win.ANIMS = {};   // anims-b.js merges into this with Object.assign
 for (const f of FILES) {
   const src = readFileSync(`data/${f}.js`, 'utf8');
   new Function('window', src)(win);
