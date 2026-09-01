@@ -188,6 +188,12 @@
     });
     var slots = spec.cells.map(function () { return el('div', { class: 'slot' }); });
 
+    // Optional second row, for animations that walk two sequences at once.
+    var cells2 = (spec.cells2 || []).map(function (v) {
+      return el('div', { class: 'cell' }, [el('span', { text: String(v) })]);
+    });
+    var slots2 = (spec.cells2 || []).map(function () { return el('div', { class: 'slot' }); });
+
     var stat = el('div', { class: 'anim-stat' });
     var note = el('p', { class: 'anim-note' });
     var counter = el('span', { class: 'anim-count' });
@@ -203,6 +209,16 @@
         var names = Object.keys(f.ptrs || {}).filter(function (n) { return f.ptrs[n] === k; });
         s.textContent = names.join(' ');
         s.classList.toggle('on', names.length > 0);
+      });
+      cells2.forEach(function (c, k) {
+        var inRange = f.range2 && k >= f.range2[0] && k <= f.range2[1];
+        c.classList.toggle('in', !!inRange);
+        c.classList.toggle('mark', !!(f.mark2 && f.mark2.indexOf(k) !== -1));
+      });
+      slots2.forEach(function (s2, k) {
+        var names = Object.keys(f.ptrs2 || {}).filter(function (n) { return f.ptrs2[n] === k; });
+        s2.textContent = names.join(' ');
+        s2.classList.toggle('on', names.length > 0);
       });
       stat.textContent = f.stat || '';
       note.textContent = f.note || '';
@@ -240,8 +256,12 @@
         el('b', { text: 'Against the template: ' }),
         document.createTextNode(spec.contrast),
       ]) : null,
+      spec.label ? el('div', { class: 'anim-row-label', text: spec.label }) : null,
       el('div', { class: 'anim-cells' }, cells),
       el('div', { class: 'anim-slots' }, slots),
+      spec.cells2 ? el('div', { class: 'anim-row-label', text: spec.label2 || '' }) : null,
+      spec.cells2 ? el('div', { class: 'anim-cells' }, cells2) : null,
+      spec.cells2 ? el('div', { class: 'anim-slots' }, slots2) : null,
       stat,
       note,
       el('div', { class: 'anim-ctl' }, [backBtn, playBtn, nextBtn, counter]),

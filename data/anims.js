@@ -127,6 +127,38 @@ window.ANIMS = {
     ],
   },
 
+  'two-pointers/2': {
+    title: 'Buy low, sell high on [7, 1, 5, 3, 6, 4] — why sorting is illegal here',
+    contrast: 'The template needs sortedness. Here sorting is not merely unnecessary, it deletes the constraint — so the pattern is replaced rather than adapted.',
+    cells: [7, 1, 5, 3, 6, 4],
+    frames: [
+      { mark: [0, 1], stat: 'lowest = 7   best = 0', note: 'Watch what two pointers would want: the cheapest and the dearest day. Those are 1 and 7 — but 7 comes FIRST, so that trade is illegal.' },
+      { ptrs: { day: 1 }, mark: [1], stat: 'price 1   lowest = 1   best = 0', note: 'One forward pass instead. Day 1 is cheaper than anything before it, so it becomes the best buy so far. No profit yet.' },
+      { ptrs: { day: 2 }, mark: [1, 2], stat: 'sell 5 - buy 1 = 4   best = 4', note: 'Selling today can only pair with the cheapest day BEFORE today. That ordering is the whole problem, and a sort would erase it.' },
+      { ptrs: { day: 3 }, mark: [1, 3], stat: 'sell 3 - buy 1 = 2   best = 4', note: 'Worse than the best, so best is untouched. Keeping CURRENT and BEST separate again.' },
+      { ptrs: { day: 4 }, mark: [1, 4], stat: 'sell 6 - buy 1 = 5   best = 5', note: 'The answer. Buy at 1 on day 1, sell at 6 on day 4 — and the buy is legal because day 1 precedes day 4.' },
+      { ptrs: { day: 5 }, mark: [1, 5], stat: 'sell 4 - buy 1 = 3   best = 5', note: 'Answer 5, in one pass and O(1) space. The tell for this whole family: if reordering the input changes the answer, no sort-based pattern can be correct.' },
+    ],
+  },
+
+  'two-pointers/3': {
+    title: 'Merging [1, 3, 8] and [2, 3, 9, 11]',
+    contrast: 'The template runs both pointers over ONE array, converging. Here there is one pointer per array and both move forward.',
+    cells: [1, 3, 8],
+    label: 'a =',
+    cells2: [2, 3, 9, 11],
+    label2: 'b =',
+    frames: [
+      { ptrs: { i: 0 }, ptrs2: { j: 0 }, mark: [0], mark2: [0], stat: 'out = []', note: 'Both pointers start at the front. The smallest remaining element is always at one of the two heads — that is what sortedness buys here.' },
+      { ptrs: { i: 1 }, ptrs2: { j: 0 }, range: [0, 0], mark2: [0], stat: 'out = [1]', note: '1 <= 2, so take from a and advance only i. The other pointer does not move.' },
+      { ptrs: { i: 1 }, ptrs2: { j: 1 }, range: [0, 0], range2: [0, 0], mark: [1], stat: 'out = [1, 2]', note: 'Now b holds the smaller head, so j advances instead. Which pointer moves is decided fresh each step.' },
+      { ptrs: { i: 2 }, ptrs2: { j: 1 }, range: [0, 1], range2: [0, 0], mark2: [1], stat: 'out = [1, 2, 3]', note: 'A tie at 3. Taking from a with <= keeps the merge STABLE — equal elements come out in a-then-b order.' },
+      { ptrs: { i: 2 }, ptrs2: { j: 2 }, range: [0, 1], range2: [0, 1], mark: [2], stat: 'out = [1, 2, 3, 3]', note: 'The other 3 follows. Both are kept: merging does not de-duplicate.' },
+      { ptrs: { i: 3 }, ptrs2: { j: 2 }, range: [0, 2], range2: [0, 1], stat: 'out = [1, 2, 3, 3, 8]   a is exhausted', note: '8 < 9, so a gives up its last element and i falls off the end. The while loop now stops.' },
+      { ptrs2: { j: 2 }, range: [0, 2], range2: [2, 3], stat: 'out = [1, 2, 3, 3, 8, 9, 11]', note: 'Flush whatever remains in b — it is already sorted, so it can be appended wholesale. That final flush is the step people forget.' },
+    ],
+  },
+
   'two-pointers/1': {
     title: 'Container with most water on [2, 3, 10, 5, 7, 8, 9]',
     contrast: 'The template moves whichever side brings the SUM closer to a target. Here there is no target — you move whichever side LIMITS the area.',

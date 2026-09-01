@@ -134,6 +134,29 @@ be written from a real list, and nothing is lost to git history. That is the
 planned second stage: reintroduce them deliberately, once the expanded form
 reads as a pattern rather than as lines.
 
+## Every solution ships with an animation
+
+Nam: *"Make it a hard hook that every problem when showing solution needs to
+show an animation too."*
+
+`tools/check-anims.mjs` enforces it. Every pattern template, every technique code
+block and every deviation diff must have an animation keyed by its exact id.
+
+**It is a ratchet, not a wall.** The rule arrived after ~190 solutions were
+already written, and a gate that fails 190 times on day one is a gate that gets
+switched off — a permanently red build teaches nothing. So:
+
+- **Anything new without an animation fails.** That is the part that matters:
+  you cannot add a solution without animating it.
+- Everything already uncovered is listed by name in `tools/anim-debt.json`.
+  That file is the honest backlog, and `npm run check` prints its size.
+- **The list may only shrink.** The moment a listed item gains an animation the
+  gate fails until its entry is deleted, so the debt cannot silently stall.
+  Adding to the list takes an edit that shows up in review.
+
+Structure `build` blocks are excluded on purpose: they show how a structure is
+*constructed*, not a problem being solved, so there is nothing to step through.
+
 **Enable the hook** (once per clone):
 
 ```bash

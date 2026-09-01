@@ -311,6 +311,10 @@ body.reviewing .qa[open] > summary { font-weight: 500; }
 .anim { background: var(--card); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
 .anim-title { font-size: 13px; color: var(--sec); margin-bottom: 14px; }
 .anim-cells, .anim-slots { display: flex; gap: 6px; flex-wrap: wrap; }
+.anim-row-label {
+  font-family: var(--mono); font-size: 11px; color: var(--sec2);
+  margin: 8px 0 4px; letter-spacing: .04em;
+}
 .cell {
   flex: 0 0 auto; min-width: 46px; height: 46px; display: flex;
   align-items: center; justify-content: center;

@@ -175,23 +175,33 @@ else:
     hi -= 1`,
       why: 'Width shrinks whatever you do, so the only way to improve is a taller limiting side. Moving the taller line can never help, and being able to say that sentence is the answer.' },
 
-    { q: 'The array is not sorted, and sorting would destroy the answer.',
-      problem: 'Return the indices of two numbers that add to a target. The answer must be the ORIGINAL indices, so the array cannot be reordered — sorting it would give you positions in the sorted array, which is not what was asked.',
-      example: `Input:   xs = [3, 2, 4], target = 6
-Output:  [1, 2]
+    { q: 'Buy once and sell once for the maximum profit — the order is the constraint.',
+      problem: 'Given daily prices, choose one day to buy and a LATER day to sell, maximising profit. Return 0 if no profitable pair exists. You may not sort, because sorting destroys the only thing that makes the problem meaningful: which day came first.',
+      example: `Input:   [7, 1, 5, 3, 6, 4]
+Output:  5
 
-Sorting gives [2, 3, 4] and the pair 2 + 4, but their
-indices are now 0 and 2 -- wrong for the caller.`,
-      reduces: 'nothing. The precondition two pointers depends on is gone, so it is a different pattern entirely.',
-      base: 'The template depends entirely on sortedness for its monotonicity.',
-      change: 'Abandon two pointers. Use a hash map for pair-finding, or a sliding window if the requirement is contiguous.',
-      code: `# no two-pointer version exists; the invariant is gone
-pos = {}
-for i, x in enumerate(xs):
-    if target - x in pos:
-        return [pos[target - x], i]
-    pos[x] = i`,
-      why: 'Recognising when a pattern does NOT apply is worth as much as applying it. If order carries meaning you may not sort, and the monotonicity argument disappears with it.' },
+Buy on day 1 at 1, sell on day 4 at 6.
+The lowest price is 1 and the highest is 7 -- but 7 comes
+BEFORE 1, so that pair is illegal. Sorting loses exactly
+that fact.`,
+      reduces: 'nothing. Two pointers converge because sortedness makes one direction safe to discard; here order is the problem, not an aid to it.',
+      base: 'The template earns its O(n) from sortedness — "everything left of lo is smaller" is what lets a pointer move one way only.',
+      change: 'Abandon two pointers. One forward pass carrying the best answer so far, which is the Kadane family rather than this one.',
+      code: `best_profit = 0
+lowest_so_far = prices[0]
+
+for price in prices[1:]:
+    # Selling today is only as good as the cheapest day BEFORE today,
+    # which is the constraint sorting would have thrown away.
+    profit_today = price - lowest_so_far
+    if profit_today > best_profit:
+        best_profit = profit_today
+
+    if price < lowest_so_far:
+        lowest_so_far = price
+
+return best_profit`,
+      why: 'Recognising when a pattern does NOT apply is worth as much as applying it. The tell is that reordering the input changes the answer — whenever that is true, no sort-based pattern can be correct.' },
 
     { q: 'Merge two sorted arrays into one.',
       problem: 'Given two arrays that are each already sorted, produce one sorted array containing all their elements. Duplicates across the two inputs are kept — the output length is the sum of the input lengths.',
