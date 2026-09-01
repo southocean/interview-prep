@@ -15,17 +15,21 @@
     <div class="controls">
       <input id="q" type="search" placeholder="Filter by keyword&hellip;" aria-label="Filter content">
       <label class="tog"><input type="checkbox" id="review"> Review mode <span class="hint">(hide answers)</span></label>
-      <button id="reset" type="button" class="ghost">Reset progress</button>
+      <button id="reset" type="button" class="ghost">Reset reviewed marks</button>
     </div>
   </div>
 </header>
 
+<div class="tabbar">
 <nav class="tabs wrap" role="tablist" aria-label="Sections">
   <button class="tab" role="tab" data-tab="dsa">DSA</button>
+  <button class="tab" role="tab" data-tab="reflexes">Reflexes</button>
+  <button class="tab" role="tab" data-tab="problems">Problems</button>
   <button class="tab" role="tab" data-tab="frontend">Front-end round</button>
   <button class="tab" role="tab" data-tab="design">System design</button>
   <button class="tab" role="tab" data-tab="behaviour">Googleyness</button>
 </nav>
+</div>
 
 <main id="main" class="wrap"></main>
 
@@ -37,6 +41,8 @@
 <script src="data/tiers.js"></script>
 <script src="data/patterns.js"></script>
 <script src="data/topics.js"></script>
+<script src="data/reflexes.js"></script>
+<script src="data/problems.js"></script>
 <script src="data/frontend.js"></script>
 <script src="app.js"></script>
 </body>

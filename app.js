@@ -4,7 +4,7 @@
   'use strict';
 
   var main = document.getElementById('main');
-  var TABS = ['dsa', 'frontend', 'design', 'behaviour'];
+  var TABS = ['dsa', 'reflexes', 'problems', 'frontend', 'design', 'behaviour'];
 
   // ------------------------------------------------------------ tiny helpers
   function el(tag, attrs, kids) {
@@ -175,6 +175,158 @@
     return f;
   }
 
+  // --------------------------------------------------------------- reflexes
+  function renderReflexes() {
+    var f = document.createDocumentFragment();
+    var R = window.REFLEXES;
+    f.appendChild(el('p', { class: 'lead', text: R.note }));
+
+    // cue -> reflex table
+    f.appendChild(el('h2', { class: 'sec', text: R.cues.title }));
+    var c = el('div', { class: 'card' });
+    c.appendChild(el('p', { class: 'meta', text: R.cues.note }));
+    var t = el('table', {}, [el('tr', {}, [
+      el('th', { text: 'Cue' }), el('th', { text: 'Reach for' }),
+    ])]);
+    R.cues.rows.forEach(function (r) {
+      t.appendChild(el('tr', {}, [el('td', { class: 'cue', text: r[0] }), el('td', { text: r[1] })]));
+    });
+    c.appendChild(t);
+    f.appendChild(c);
+
+    // the nine questions
+    f.appendChild(el('h2', { class: 'sec', text: R.triage.title }));
+    var tri = el('div', { class: 'card' });
+    tri.appendChild(el('p', { class: 'meta', text: R.triage.note }));
+    tri.appendChild(el('ul', { class: 'steps' }, R.triage.steps.map(function (s) {
+      return el('li', {}, [el('b', { text: s[0] }), el('span', { text: s[1] })]);
+    })));
+    f.appendChild(tri);
+
+    // the moves
+    f.appendChild(el('h2', { class: 'sec', text: R.moves.title }));
+    f.appendChild(el('p', { class: 'meta', text: R.moves.note }));
+    R.moves.items.forEach(function (m, i) {
+      var d = el('details', { class: 'pat' });
+      var s = el('summary', {}, [el('span', { text: m[0] })]);
+      s.appendChild(doneBox('move-' + i, d));
+      d.appendChild(s);
+      d.appendChild(el('div', { class: 'pat-body' }, [
+        el('div', { class: 'row' }, [el('b', { text: 'What it is' }), el('span', { text: m[1] })]),
+      ]));
+      f.appendChild(d);
+    });
+
+    // reasoning -> code
+    f.appendChild(el('h2', { class: 'sec', text: R.translate.title }));
+    var tr = el('div', { class: 'card' });
+    tr.appendChild(el('p', { class: 'meta', text: R.translate.note }));
+    tr.appendChild(el('ul', { class: 'steps' }, R.translate.steps.map(function (s) {
+      return el('li', {}, [el('b', { text: s[0] }), el('span', { text: s[1] })]);
+    })));
+    f.appendChild(tr);
+
+    var bg = el('div', { class: 'card' });
+    bg.appendChild(el('p', { class: 'meta', text: 'The six translation bugs, and the fix for each.' }));
+    bg.appendChild(rows(R.translate.bugs.map(function (b) { return [b[0], b[1]]; })));
+    f.appendChild(bg);
+
+    // learning method
+    f.appendChild(el('h2', { class: 'sec', text: R.learning.title }));
+    var lc = el('div', { class: 'card' });
+    lc.appendChild(el('p', { class: 'meta', text: R.learning.note }));
+    var lt = el('table', {});
+    R.learning.rows.forEach(function (r) {
+      lt.appendChild(el('tr', {}, [el('td', { class: 'k', text: r[0] }), el('td', { text: r[1] })]));
+    });
+    lc.appendChild(lt);
+    f.appendChild(lc);
+
+    return f;
+  }
+
+  // --------------------------------------------------------------- problems
+  var PKEY = 'prep-problems';
+  var solved = {};
+  try { solved = JSON.parse(localStorage.getItem(PKEY) || '{}'); } catch (e) { solved = {}; }
+  function saveSolved() { try { localStorage.setItem(PKEY, JSON.stringify(solved)); } catch (e) {} }
+
+  function renderProblems() {
+    var f = document.createDocumentFragment();
+    var P = window.PROBLEMS;
+
+    // how to use
+    f.appendChild(el('h2', { class: 'sec', text: P.howto.title }));
+    var h = el('div', { class: 'card' });
+    h.appendChild(el('ul', { class: 'steps howto' }, P.howto.steps.map(function (s, i) {
+      return el('li', {}, [el('b', { text: String(i + 1) + '.' }), el('span', { text: s })]);
+    })));
+    h.appendChild(el('p', { class: 'meta pad', text: P.howto.note }));
+    f.appendChild(h);
+
+    // counter
+    var count = el('p', { class: 'lead count' });
+    function tally() {
+      var n = P.items.filter(function (_, i) { return solved[i]; }).length;
+      count.textContent = n + ' of ' + P.items.length + ' marked solved.'
+        + (n === 0 ? ' Start with #1.' : '');
+    }
+    f.appendChild(el('h2', { class: 'sec', text: 'The list — shuffled on purpose' }));
+    f.appendChild(count);
+
+    P.items.forEach(function (p, i) {
+      var card = el('div', { class: 'card prob' });
+
+      var head = el('div', { class: 'prob-head' }, [
+        el('span', { class: 'num', text: '#' + (i + 1) }),
+        el('h3', { text: p.t }),
+      ]);
+      card.appendChild(head);
+      card.appendChild(el('p', { class: 'ask', text: p.ask }));
+
+      // hidden meta
+      var meta = el('div', { class: 'prob-meta' }, [
+        el('div', { class: 'row' }, [el('b', { text: 'Difficulty' }), el('span', { class: 'diff', text: p.d })]),
+        el('div', { class: 'row' }, [el('b', { text: 'Pattern' }), el('span', { text: p.p })]),
+        el('div', { class: 'row' }, [el('b', { text: 'Key insight' }), el('span', { text: p.i })]),
+      ]);
+
+      function show(on) {
+        meta.classList.toggle('open', on);
+        card.classList.toggle('is-open', on);
+      }
+
+      var cb = el('input', { type: 'checkbox' });
+      cb.checked = !!solved[i];
+      var lab = el('label', { class: 'solve' }, [cb]);
+      lab.appendChild(document.createTextNode('solved'));
+
+      var rev = el('button', { class: 'ghost tiny', type: 'button', text: 'Stuck — reveal' });
+
+      cb.addEventListener('change', function () {
+        solved[i] = cb.checked;
+        saveSolved();
+        card.classList.toggle('is-solved', cb.checked);
+        show(cb.checked || meta.classList.contains('open'));
+        if (!cb.checked) show(false);
+        tally();
+      });
+      rev.addEventListener('click', function () {
+        show(!meta.classList.contains('open'));
+        rev.textContent = meta.classList.contains('open') ? 'Hide' : 'Stuck — reveal';
+      });
+
+      card.appendChild(el('div', { class: 'prob-acts' }, [lab, rev]));
+      card.appendChild(meta);
+
+      if (solved[i]) { card.classList.add('is-solved'); show(true); }
+      f.appendChild(card);
+    });
+
+    tally();
+    return f;
+  }
+
   // -------------------------------------------------------------- front end
   function renderFrontend() {
     var f = document.createDocumentFragment();
@@ -206,6 +358,8 @@
   function render(tab) {
     main.innerHTML = '';
     if (tab === 'dsa') main.appendChild(renderDsa());
+    else if (tab === 'reflexes') main.appendChild(renderReflexes());
+    else if (tab === 'problems') main.appendChild(renderProblems());
     else if (tab === 'frontend') main.appendChild(renderFrontend());
     else if (tab === 'design') main.appendChild(todo('System design — not written yet',
       'Next tab to build. Planned: the round format, the client-side to distributed gap, a reusable answer skeleton, and back-of-envelope numbers worth memorising. Your real-time multiplayer client is the raw material.'));

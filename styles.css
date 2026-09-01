@@ -53,7 +53,13 @@ body {
 .ghost:hover { background: var(--card); }
 
 /* ------------------------------------------------------------------ tabs -- */
-.tabs { display: flex; gap: 6px; padding-top: 16px; flex-wrap: wrap; }
+/* Sticky, because the problems list is long and the tabs must stay reachable
+   without scrolling back to the top. */
+.tabbar {
+  position: sticky; top: 0; z-index: 5;
+  background: var(--bg); border-bottom: 1px solid var(--line);
+}
+.tabs { display: flex; gap: 6px; padding-top: 12px; padding-bottom: 12px; flex-wrap: wrap; }
 .tab {
   font: inherit; font-size: 14px; padding: 9px 18px; border-radius: 999px;
   border: 1px solid transparent; background: transparent; color: var(--ink2); cursor: pointer;
@@ -130,6 +136,34 @@ body.reviewing .qa[open] > summary { font-weight: 500; }
 .tag.t1 { background: var(--warn-soft); color: var(--warn); }
 .tag.t2 { background: var(--blue-soft); color: var(--blue); }
 .tag.t3 { background: var(--card); color: var(--sec); border: 1px solid var(--line); }
+
+/* ------------------------------------------------------------- reflexes -- */
+td.cue { font-weight: 500; color: var(--ink); white-space: nowrap; padding-right: 20px; }
+@media (max-width: 620px) { td.cue { white-space: normal; } }
+
+/* ------------------------------------------------------------- problems -- */
+.howto b { flex: 0 0 22px; color: var(--blue); }
+.meta.pad { margin: 14px 0 0; padding-top: 12px; border-top: 1px solid var(--line); }
+.count { color: var(--sec); font-size: 14px; margin: 0 0 16px; }
+
+.card.prob { padding: 16px 20px; }
+.prob-head { display: flex; align-items: baseline; gap: 12px; }
+.prob-head h3 { margin: 0; }
+.num {
+  font-family: var(--mono); font-size: 13px; color: var(--sec);
+  flex: 0 0 auto; padding-top: 2px;
+}
+.ask { margin: 6px 0 0; color: var(--ink2); font-size: 14px; }
+.prob-acts { display: flex; align-items: center; gap: 12px; margin-top: 12px; }
+.solve { display: flex; align-items: center; gap: 7px; font-size: 13px; color: var(--ink2); cursor: pointer; }
+.ghost.tiny { font-size: 12px; padding: 5px 11px; }
+
+/* Difficulty, pattern and insight stay shut until solved or revealed --
+   difficulty is a spoiler, since "hard" tells you not to trust your first idea. */
+.prob-meta { display: none; margin-top: 12px; }
+.prob-meta.open { display: block; }
+.card.prob.is-solved { border-left: 3px solid var(--good); }
+.diff { font-weight: 500; }
 
 .todo { padding: 34px 22px; border: 1px dashed var(--line); border-radius: 12px; color: var(--sec); }
 .todo h3 { color: var(--ink); margin-top: 0; }
