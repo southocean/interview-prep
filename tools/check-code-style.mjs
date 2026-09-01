@@ -1,23 +1,35 @@
-/* Code in this repo is TEACHING code. It is optimised for comprehension, never
- * for line count.
+/* Code in this repo is TEACHING code, written for a reader who is still
+ * building speed. It is spelled out rather than compressed.
  *
- * Nam: "I think another skill I haven't developed is to read these solution
- * code that is optimized for efficiency but are not very readable. They use a
- * lot of syntax optimization that make the lines short at the cost of
- * comprehension ... what does this syntax do again? Very annoying."
+ * THIS IS A STAGING DECISION, NOT A JUDGEMENT ABOUT GOOD CODE.
  *
- * He is right, and it is worse than annoying: a reader who stops to decode
- * syntax has lost the thread of the algorithm, which is the only thing the
- * snippet exists to convey. Every character saved by a clever idiom is paid for
- * in comprehension, and on a study site that is the wrong trade every time.
+ * Nam, first: "they use a lot of syntax optimization that make the lines short
+ * at the cost of comprehension ... what does this syntax do again? Very
+ * annoying."
  *
- * So this is a gate, not a guideline. It runs in `npm run check` and in the
- * pre-commit hook, and it fails the build.
+ * Nam, correcting himself: "actually I was reacting prematurely. Having
+ * efficient code is fine too, like the seen.get(), but for now we can live with
+ * the easier version just so I increase my speed of learning, then we can
+ * introduce them back in at a later point with a full appendix on production
+ * code optimization."
  *
- * The banned list is deliberately narrow: constructs whose MEANING is not
- * obvious from reading left to right. Ordinary Python is fine. defaultdict,
- * heapq and enumerate stay, because they are named concepts with pages
- * explaining them rather than syntax puzzles.
+ * That is the right framing and this file follows it. While recognition is the
+ * thing being trained, a reader who stops to decode syntax has lost the thread
+ * of the algorithm -- so the compressed forms are held back. They are not
+ * wrong; they are the SECOND thing to learn, and every one removed is recorded
+ * in tools/IDIOM-APPENDIX.md ready to be taught deliberately later.
+ *
+ * Worth keeping straight, because the first framing muddled it: none of the
+ * banned forms below are faster. `d.get(k, 0)` and `if k in d` are the same
+ * complexity and roughly the same speed. They save characters, not time. Real
+ * efficiency work -- fewer passes, better structures, avoiding copies -- is a
+ * separate subject and the site teaches it everywhere.
+ *
+ * The gate runs in `npm run check` and in the pre-commit hook. The banned list
+ * is deliberately narrow: constructs whose MEANING is not obvious reading left
+ * to right. Ordinary Python is fine. defaultdict, heapq and enumerate stay,
+ * because they are named concepts with pages explaining them rather than syntax
+ * puzzles.
  */
 import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';

@@ -84,22 +84,34 @@ file keyed by page id — and fails on anything that does not resolve. It earned
 itself immediately: six `also` links pointed at pattern pages that did not
 exist, and the renderer was silently dropping them.
 
-## Code style: comprehension, not brevity
+## Code style: spelled out, for now
 
-**The code on this site is teaching code, and it is optimised for reading.**
+**The code on this site is teaching code, written for a reader still building
+speed. It is spelled out rather than compressed — and that is a staging
+decision, not a judgement about good code.**
 
-Nam: *"they use a lot of syntax optimization that make the lines short at the
-cost of comprehension — what does this syntax do again? Very annoying."*
+Nam, first: *"they use a lot of syntax optimization that make the lines short at
+the cost of comprehension."* Then, correcting himself: *"actually I was reacting
+prematurely. Having efficient code is fine too, like the `seen.get()`, but for
+now we can live with the easier version just so I increase my speed of learning,
+then we can introduce them back in at a later point with a full appendix on
+production code optimization."*
 
-That is worse than annoying. A reader who stops to decode syntax has lost the
-thread of the algorithm, which is the only thing the snippet exists to convey.
-Every character saved by a clever idiom is paid for in comprehension, and on a
-study site that is the wrong trade every time.
+That is the framing the repo follows. While recognition is the thing being
+trained, a reader who stops to decode syntax has lost the thread of the
+algorithm — so the compressed forms are held back. They are not wrong; they are
+the **second** thing to learn.
 
-So it is a gate, not a guideline. `tools/check-code-style.mjs` runs in
-`npm run check` and in the pre-commit hook, and it **fails the build** on:
+**None of the banned forms are faster.** Worth stating plainly, because the first
+version of this section muddled it. `d.get(k, 0)` and `if k in d` are the same
+complexity and roughly the same speed. They save characters, not time. Real
+efficiency work — fewer passes, better structures, avoiding copies — is a
+separate subject the site teaches everywhere.
 
-| Banned | Instead |
+`tools/check-code-style.mjs` runs in `npm run check` and in the pre-commit hook,
+and **fails the build** on:
+
+| Held back | Used instead |
 | --- | --- |
 | `x if c else y` | a plain `if` / `else` block |
 | `a; b` on one line | one statement per line |
@@ -111,10 +123,16 @@ So it is a gate, not a guideline. `tools/check-code-style.mjs` runs in
 | `a, b = f(), g()` | two lines, and name anything used twice |
 | backslash continuation | restructure so each line stands alone |
 
-The list is deliberately narrow: constructs whose *meaning* is not obvious
-reading left to right. Ordinary Python stays. `defaultdict`, `heapq` and
-`enumerate` stay, because they are named concepts with pages explaining them
-rather than syntax puzzles.
+Deliberately narrow: constructs whose *meaning* is not obvious reading left to
+right. Ordinary Python stays. `defaultdict`, `heapq` and `enumerate` stay,
+because they are named concepts with pages explaining them rather than syntax
+puzzles.
+
+**Every idiom removed is recorded in `tools/IDIOM-APPENDIX.md`** with both forms
+and a note on when the compressed one is genuinely better — so the appendix can
+be written from a real list, and nothing is lost to git history. That is the
+planned second stage: reintroduce them deliberately, once the expanded form
+reads as a pattern rather than as lines.
 
 **Enable the hook** (once per clone):
 
