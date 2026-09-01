@@ -3,44 +3,55 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Interview prep — Nam</title>
+<title>Interview prep</title>
 <link rel="stylesheet" href="styles.css">
+<script>
+  /* Applied before first paint so the chosen theme never flashes. Three states:
+     "light" and "dark" are explicit; absent means follow the OS. */
+  try {
+    var t = localStorage.getItem('prep-theme');
+    if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t;
+  } catch (e) {}
+</script>
 </head>
 <body>
 
 <header class="top">
-  <div class="wrap top-in">
-    <h1>Interview prep</h1>
-    <p class="sub">Senior Software Engineer, Web Development &middot; Google</p>
-    <div class="controls">
-      <input id="q" type="search" placeholder="Filter by keyword&hellip;" aria-label="Filter content">
-      <label class="tog"><input type="checkbox" id="review"> Review mode <span class="hint">(hide answers)</span></label>
-      <button id="reset" type="button" class="ghost">Reset reviewed marks</button>
+  <div class="top-in">
+    <a class="brand" href="#/dsa">
+      <span class="brand-name">Interview prep</span>
+      <span class="brand-sub">Senior SWE, Web &middot; Google</span>
+    </a>
+
+    <nav class="nav" aria-label="Sections">
+      <a class="nav-a" data-sec="dsa" href="#/dsa">DSA</a>
+      <a class="nav-a" data-sec="reflexes" href="#/reflexes">Reflexes</a>
+      <a class="nav-a" data-sec="problems" href="#/problems">Problems</a>
+      <a class="nav-a" data-sec="frontend" href="#/frontend">Front-end</a>
+      <a class="nav-a" data-sec="design" href="#/design">System design</a>
+      <a class="nav-a" data-sec="behaviour" href="#/behaviour">Googleyness</a>
+    </nav>
+
+    <div class="tools">
+      <input id="q" type="search" placeholder="Filter&hellip;" aria-label="Filter this page">
+      <div class="theme" role="group" aria-label="Colour theme">
+        <button type="button" data-theme="auto" title="Follow system">Auto</button>
+        <button type="button" data-theme="light" title="Light">Light</button>
+        <button type="button" data-theme="dark" title="Dark">Dark</button>
+      </div>
     </div>
   </div>
 </header>
 
-<div class="tabbar">
-<nav class="tabs wrap" role="tablist" aria-label="Sections">
-  <button class="tab" role="tab" data-tab="dsa">DSA</button>
-  <button class="tab" role="tab" data-tab="reflexes">Reflexes</button>
-  <button class="tab" role="tab" data-tab="problems">Problems</button>
-  <button class="tab" role="tab" data-tab="frontend">Front-end round</button>
-  <button class="tab" role="tab" data-tab="design">System design</button>
-  <button class="tab" role="tab" data-tab="behaviour">Googleyness</button>
-</nav>
+<div class="shell">
+  <aside class="side" id="side" aria-label="In this section"></aside>
+  <main class="doc" id="main"></main>
 </div>
-
-<main id="main" class="wrap"></main>
-
-<footer class="wrap foot">
-  <p>Content lives in <code>data/*.js</code>. Progress and settings are stored in this browser only.</p>
-</footer>
 
 <script src="data/base.js"></script>
 <script src="data/tiers.js"></script>
 <script src="data/patterns.js"></script>
-<script src="data/topics.js"></script>
+<script src="data/structures.js"></script>
 <script src="data/reflexes.js"></script>
 <script src="data/problems.js"></script>
 <script src="data/frontend.js"></script>

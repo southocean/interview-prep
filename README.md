@@ -1,6 +1,6 @@
 # Interview prep
 
-A study deck for the Google **Senior Software Engineer, Web Development** loop.
+A study site for the Google **Senior Software Engineer, Web Development** loop.
 Static files, no dependencies, no build step — open `index.html` in a browser.
 
 ## Why it exists
@@ -11,95 +11,118 @@ rounds*, not your CV. This is the prep for those rounds.
 
 ## Using it
 
-Open `index.html`. Four tabs:
+It is a routed site, not a page of tabs: a top menu for the six sections, a
+sidebar listing everything inside the current section **ordered by importance**,
+and a page per item.
 
-| Tab | State | Covers |
+| Section | State | Covers |
 | --- | --- | --- |
-| **DSA** | Written | How a round runs, constraint→complexity table, Python and JS toolkits, priority tiers, 17 patterns, 13 structure cards with self-tests |
-| **Reflexes** | Written | Cue→reflex table, the nine triage questions, 15 named optimisation moves, reasoning→code translation, learning method |
-| **Problems** | Written | 60 problems, shuffled, difficulty hidden until solved |
-| **Front-end round** | Written | Implement-from-scratch classics, DOM and browser, language depth, performance and a11y, component design |
-| **System design** | To write | Round format, the client-side→distributed gap, answer skeleton, numbers to memorise |
-| **Googleyness** | To write | Attributes actually scored, a STAR story bank, senior-scope framing |
+| **DSA** | Written | 5 foundation pages, 22 pattern pages, 12 structure pages |
+| **Reflexes** | Written | Cue→reflex, the nine triage questions, 15 named moves, reasoning→code, learning method |
+| **Problems** | Written | 61 problems, shuffled, difficulty hidden until solved, filterable by pattern |
+| **Front-end round** | Written | Implement-from-scratch classics, DOM, language depth, performance, component design |
+| **System design** | To write | Round format, the client-side→distributed gap, answer skeleton, numbers |
+| **Googleyness** | To write | Attributes scored, a STAR story bank, senior-scope framing |
 
-Three controls in the header:
+**Theme** — the Auto / Light / Dark control in the header. Auto follows the OS.
+The choice is stored and applied before first paint, so it never flashes.
 
-- **Filter** — type a keyword to narrow every card on the page.
-- **Review mode** — collapses all self-test answers so you can quiz yourself.
-- **Reviewed checkboxes** — per pattern, move and structure, stored in
-  `localStorage`. "Reset reviewed marks" clears those and **does not touch solved
-  problems**, which are kept under a separate key so they cannot be wiped by
-  accident.
+**Filter** — narrows the cards, tiles and table rows on the current page.
 
-## The Reflexes tab
+## How the pages interconnect
 
-The one to open daily. It exists because the bottleneck is usually not knowing
-an algorithm, it is retrieving the right one within ten seconds of reading a
+This is what makes it a site rather than a document.
+
+Every **pattern page** carries **deviations**: the variations interviewers
+actually ask, each with the tell that identifies it and what specifically changes
+in the code. That section matters more than the template — the template is the
+textbook version, the deviations are the interview. Sliding window has five,
+including the one that costs people the problem: for *longest* you record while
+the window is valid, for *shortest* you record inside the shrink.
+
+Pattern pages link to the structures they use, related patterns, and every
+problem on them. **Structure pages** carry how it is built, a costs table, what
+to know cold, pitfalls and self-tests, and link back to the patterns built on
+them and the problems that reach them. **Problems**, once solved, link to their
+pattern and structure so the deviations can be read while it is fresh.
+
+### Links are declared once and inverted at load
+
+Patterns name their structures; problems name their pattern. **Nothing declares
+the reverse** — `app.js` builds those indexes at startup. So adding a problem
+appears on its pattern page and on that pattern's structure pages with no second
+edit, and the two directions cannot drift apart.
+
+To check the graph after editing content:
+
+```bash
+node -e "global.window={};for(const f of ['base','tiers','patterns','structures','reflexes','problems','frontend'])require('./data/'+f+'.js');const P=window.PATTERNS.items,S=window.STRUCTURES.items,PR=window.PROBLEMS.items;const sid=new Set(S.map(s=>s.id)),pid=new Set(P.map(p=>p.id));let bad=[];P.forEach(p=>{(p.structures||[]).forEach(x=>{if(!sid.has(x))bad.push(p.id+' -> '+x)});(p.also||[]).forEach(x=>{if(!pid.has(x))bad.push(p.id+' -> also '+x)})});PR.forEach((r,i)=>{(r.pat||[]).forEach(x=>{if(!pid.has(x))bad.push('#'+(i+1)+' '+x)})});console.log(bad.length?bad:'all links resolve')"
+```
+
+That check earned itself immediately: six `also` links pointed at pattern pages
+that did not exist, and the renderer was silently dropping them.
+
+## Editing
+
+Content is data, separate from rendering:
+
+```
+data/base.js         the round, the constraint table, the language toolkits
+data/tiers.js        study order with likelihoods
+data/patterns.js     per pattern: signal, idea, template, deviations, bugs, links
+data/structures.js   per structure: why, build, costs, cold, pitfalls, quiz
+data/problems.js     per problem: ask, difficulty, insight, pattern links
+data/reflexes.js     cues, triage, moves, translation, learning
+data/frontend.js     the front-end domain round
+app.js               router, sidebar, page renderers, derived indexes
+```
+
+Adding a pattern is appending to `PATTERNS.items` with an `id` and a `rank`. The
+sidebar, the landing grid and every cross-link follow automatically.
+
+## The Reflexes section
+
+The one to open daily. It exists because the bottleneck is usually not knowing an
+algorithm, it is retrieving the right one within ten seconds of reading a
 question.
 
 - **Cue → reflex** — the phrase that appears in the question, and what to reach
-  for before you finish reading it. Read the left column and answer before
-  looking right.
-- **The nine questions** — what to ask, in order, when you have no idea yet.
-  Designed so most problems reveal themselves by question five ("where is the
-  brute force redundant?").
+  for before you finish reading it.
+- **The nine questions** — what to ask, in order, when you have no idea yet. Most
+  problems reveal themselves by question five: *where is the brute force
+  redundant?*
 - **The moves** — the reusable tricks underneath the patterns: sort to buy an
   invariant, process in an order that makes dependencies already resolved, turn
   objects into events, track the frontier not the history, reverse the question.
   Patterns are what you *recognise*; moves are what you *do*.
 - **Reasoning → code** — the step people skip, plus the six translation bugs.
 
-## The Problems tab
+## The Problems section
 
-Sixty problems, and **deliberately shuffled**. Grouping them by pattern would
-train execution while destroying the thing being trained — if you know it is a
-window problem before reading it, you have skipped the only hard step.
+**Deliberately shuffled.** Grouping by pattern would train execution while
+destroying the thing being trained — if you know it is a window problem before
+reading it, you have skipped the only hard step. Two pairs are planted far apart
+(Koko / ship packages, course schedule I and II) so the family has to be
+recognised cold. Sidebar filtering by pattern is there for deliberate drilling
+once recognition is no longer the goal.
 
-- **Difficulty, pattern and key insight stay hidden** until you tick *solved*.
-  Difficulty is a spoiler: "hard" tells you not to trust your first idea, which
-  is information a real interview will not give you.
-- **You decide what counts as solved.** Ticking reveals the meta so you can
-  check your reasoning against it.
-- **"Stuck — reveal"** opens the same block without marking it solved.
-- Progress persists in `localStorage`.
+- **Difficulty, pattern and insight stay hidden** until you tick *solved*.
+  Difficulty is a spoiler: "hard" tells you not to trust your first idea, which a
+  real interview will not.
+- **You decide what counts as solved.** "Stuck — reveal" opens the same block
+  without marking it.
+- Progress persists in `localStorage` under its own key, so nothing else can wipe
+  it.
 
 **The intended workflow:** write your reasoning on paper first — output type, n,
 the brute force, where it is redundant, the pattern you are betting on. Then
-batch the reviews: come back and say *"problem #23, here is my reasoning — what
-do you think?"* Several at once. You do the thinking, the review is the cheap
-part.
-
-## Editing
-
-All content is data, separate from rendering:
-
-```
-data/base.js       the round, the constraint table, the language toolkits
-data/tiers.js      what to study in what order, with likelihood
-data/patterns.js   the pattern catalogue — signal, template, cost, problems, bug
-data/topics.js     one card per structure, with self-test Q&A
-data/frontend.js   the front-end domain round
-app.js             tabs, rendering, filter, review mode, progress
-```
-
-Add a pattern by appending to `PATTERNS.items`; nothing else needs touching.
-
-## The order to work in
-
-1. **Patterns first, not problems.** Learn to recognise the *signal*. Problems
-   are re-skins of about seventeen ideas.
-2. **Then the structure cards**, using "Cold" as the bar: type it correctly,
-   first try, no reference.
-3. **Then timed practice** — 35 minutes, no autocomplete, no running the code,
-   narrating out loud. The format is a separate skill from the algorithms and it
-   is the one most likely to be undertrained.
+batch the reviews: *"problem #23, here is my reasoning — what do you think?"* You
+do the thinking; review is the cheap part.
 
 ## Related
 
-The callback repo (`C:/projects/friends/callback`) already holds two deep-dive
-docs that serve the front-end round directly:
+The callback repo (`C:/projects/friends/callback`) holds two deep-dive docs that
+serve the front-end round directly:
 
-- `tools/INTERVIEW-PREP.md` — event propagation, delegation, `preventDefault`,
-  measured with real numbers
-- `tools/GOOGLE-FRONTEND-STACK.md` — how Meet's front end is actually built,
-  jsaction, GM3, Material Symbols
+- `tools/INTERVIEW-PREP.md` — event propagation, delegation, `preventDefault`
+- `tools/GOOGLE-FRONTEND-STACK.md` — how Meet's front end is actually built
