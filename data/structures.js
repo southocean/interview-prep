@@ -23,7 +23,8 @@ c = Counter(xs)                 # frequencies in one line
 c.most_common(k)                # top-k by count
 
 seen = set()                    # membership only
-d.get(k, default)               # the branch-killer`,
+if k in d:                      # explicit beats clever
+    use(d[k])`,
       ops: [
         ['insert / update', 'O(1) average', 'Worst case O(n) on adversarial hashing. Never worth mentioning unless asked.'],
         ['lookup / membership', 'O(1) average', 'But hashing a long string costs its LENGTH — not free for big keys.'],
@@ -86,10 +87,29 @@ list(zip(a, b))      # pair up two sequences`,
     def __init__(self, val, left=None, right=None):
         self.val, self.left, self.right = val, left, right
 
-# The three DFS orders differ only in WHERE you visit
-def pre(n):   visit(n); pre(n.left);  pre(n.right)
-def ino(n):   ino(n.left);  visit(n); ino(n.right)   # sorted, for a BST
-def post(n):  post(n.left); post(n.right); visit(n)  # children first`,
+# The three DFS orders differ only in WHERE the visit happens.
+# Written out in full, because the difference IS the lesson.
+
+def preorder(node):
+    if not node:
+        return
+    visit(node)                 # <- before the children
+    preorder(node.left)
+    preorder(node.right)
+
+def inorder(node):
+    if not node:
+        return
+    inorder(node.left)
+    visit(node)                 # <- between them; sorted order for a BST
+    inorder(node.right)
+
+def postorder(node):
+    if not node:
+        return
+    postorder(node.left)
+    postorder(node.right)
+    visit(node)                 # <- after both children`,
       ops: [
         ['DFS traversal', 'O(n) time, O(h) stack', 'h is the height — O(log n) if balanced, O(n) if degenerate.'],
         ['BFS traversal', 'O(n) time, O(w) queue', 'w is the widest level.'],
@@ -250,7 +270,8 @@ q[0], q[-1]        # both ends, O(1)`,
       id: 'grid', rank: 8, name: 'Grid / matrix', tier: 2,
       one: 'A graph wearing a costume. Once the node is (row, col), the whole graph toolkit applies unchanged.',
       why: 'Islands, flood fill, mazes, spreading processes. The moment you recognise it as a graph, you stop inventing and start reusing.',
-      build: `R, C = len(grid), len(grid[0])
+      build: `rows = len(grid)
+cols = len(grid[0])
 DIRS = ((1, 0), (-1, 0), (0, 1), (0, -1))     # add diagonals if asked
 
 def nbrs(r, c):
@@ -265,6 +286,7 @@ q = deque((r, c) for r in range(R) for c in range(C) if grid[r][c] == SRC)`,
         ['visit every cell', 'O(R*C)', ''],
         ['BFS / DFS over the grid', 'O(R*C)', 'Each cell enters once if you mark on enqueue.'],
         ['in-place visited marking', 'O(1) space', 'Overwrite the cell. Say out loud that you are mutating the input.'],
+        ['bounds check', 'O(1)', 'Name the dimensions rows and cols rather than R and C -- the code is read far more often than it is typed.'],
       ],
       cold: [
         'The four-direction delta loop with bounds checking.',
@@ -360,13 +382,18 @@ def find(x):
     return x
 
 def union(a, b):
-    ra, rb = find(a), find(b)
-    if ra == rb:
-        return False                    # already joined -> a cycle
-    if size[ra] < size[rb]:
-        ra, rb = rb, ra
-    parent[rb] = ra
-    size[ra] += size[rb]
+    root_a = find(a)
+    root_b = find(b)
+
+    if root_a == root_b:
+        return False            # already joined -> this edge closes a cycle
+
+    # Hang the smaller tree off the larger, so the trees stay shallow.
+    if size[root_a] < size[root_b]:
+        root_a, root_b = root_b, root_a
+
+    parent[root_b] = root_a
+    size[root_a] += size[root_b]
     return True`,
       ops: [
         ['find', 'Near O(1) amortised', 'With path compression. O(n) without it.'],

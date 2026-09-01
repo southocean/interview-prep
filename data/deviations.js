@@ -34,12 +34,36 @@ for w in words:
     { q: 'Count the subarrays that sum to exactly k.',
       base: 'The template asks "have I seen this value?". Here you need "how many times have I seen it?".',
       change: 'Store counts rather than indices, key on the running prefix sum, and seed the map with the empty prefix.',
-      code: `seen = {0: 1}              # <- the seed everyone forgets
-run = total = 0
+      code: `from collections import defaultdict
+
+# A subarray from j+1..i sums to k exactly when
+#     prefix_up_to_i - prefix_up_to_j == k
+# so at each position we need: how many earlier prefixes
+# equalled (running_sum - k)?
+
+# defaultdict(int) hands back 0 for a key never seen, so we never
+# have to check whether a key exists before reading it.
+prefix_counts = defaultdict(int)
+
+# The empty prefix has sum 0, and it has occurred once before we start.
+# Without this line, a subarray starting at index 0 is never counted.
+prefix_counts[0] = 1
+
+running_sum = 0
+total = 0
+
 for x in xs:
-    run += x
-    total += seen.get(run - k, 0)   # count, not lookup
-    seen[run] = seen.get(run, 0) + 1`,
+    running_sum += x
+
+    # Each earlier prefix equal to this marks the start of a
+    # subarray that ends here and sums to k.
+    needed = running_sum - k
+    total += prefix_counts[needed]
+
+    # Record this prefix so later positions can look back at it.
+    prefix_counts[running_sum] += 1
+
+return total`,
       why: 'A subarray ending here sums to k exactly when some earlier prefix equals run − k. The {0: 1} seed is what lets a subarray starting at index 0 be counted at all.' },
 
     { q: 'Return the most frequent element, not just whether one exists.',
@@ -102,10 +126,14 @@ for i, x in enumerate(xs):
       code: `i = j = 0
 while i < len(a) and j < len(b):
     if a[i] <= b[j]:
-        out.append(a[i]); i += 1
+        out.append(a[i])
+        i += 1
     else:
-        out.append(b[j]); j += 1
-out += a[i:] + b[j:]          # flush whichever remains`,
+        out.append(b[j])
+        j += 1
+
+out += a[i:]                  # flush whichever list still has items
+out += b[j:]`,
       why: 'Same skeleton, different geometry — and this is the merge step inside k-way merge and merge sort, so it is worth having in your fingers.' },
   ],
 
@@ -255,9 +283,11 @@ hi = sum(weights)      # one day, everything at once -- always feasible`,
       code: `best = 0
 def height(node):
     global best
-    l, r = height(node.left), height(node.right)
-    best = max(best, l + r)      # <- the answer, recorded
-    return 1 + max(l, r)         # <- the contract, returned`,
+    left_height = height(node.left)
+    right_height = height(node.right)
+
+    best = max(best, left_height + right_height)  # the answer, recorded
+    return 1 + max(left_height, right_height)     # the contract, returned`,
       why: 'The longest path through a node is not the value its parent needs. Recognising when those two quantities differ is the core tree skill, and it recurs in maximum path sum and longest univalue path.' },
 
     { q: 'The tree is 10^5 nodes deep.',
@@ -300,18 +330,27 @@ def dfs(node):
 ...
         parent[nxt] = node        # <- record who reached it first
 
-path, cur = [], goal              # then reconstruct
+# then reconstruct, walking parents backwards from the goal
+path = []
+cur = goal
 while cur is not None:
-    path.append(cur); cur = parent[cur]
-return path[::-1]`,
+    path.append(cur)
+    cur = parent[cur]
+
+path.reverse()                # we built it goal-first
+return path`,
       why: 'The first arrival is the shortest one, so the first parent recorded is on a shortest path. No extra search is needed.' },
 
     { q: 'The edges have different costs now.',
       base: 'The template treats every step as equal, which is what makes arrival order equal shortest order.',
       change: 'Swap the queue for a heap — that is Dijkstra. If the weights are only 0 and 1, a deque with appendleft is enough.',
-      code: `heapq.heappush(h, (dist + w, nxt))    # Dijkstra
+      code: `heapq.heappush(heap, (dist + weight, nxt))     # Dijkstra
+
 # or, for 0/1 weights only:
-dq.appendleft(nxt) if w == 0 else dq.append(nxt)`,
+if weight == 0:
+    dq.appendleft(nxt)
+else:
+    dq.append(nxt)`,
       why: 'With weights, a path with more edges can be cheaper, so first-arrival stops meaning cheapest. The 0-1 case is worth knowing because it keeps O(V+E).' },
 
     { q: 'Neighbours are words differing by one letter, over a 10^4-word dictionary.',
@@ -328,11 +367,14 @@ for w in words:
     { q: 'Which grid cells can reach BOTH oceans?',
       base: 'The template searches outward from each starting cell.',
       change: 'Reverse the direction. Search inward from each ocean edge, then intersect the two reachable sets.',
-      code: `pacific, atlantic = set(), set()
-for r in range(R):
-    dfs(r, 0, pacific)          # flow INWARD from the border
-    dfs(r, C-1, atlantic)
-return pacific & atlantic`,
+      code: `pacific = set()
+atlantic = set()
+
+for r in range(rows):
+    dfs(r, 0, pacific)             # flow INWARD from the left border
+    dfs(r, cols - 1, atlantic)     # and inward from the right
+
+return pacific & atlantic          # cells that reached both`,
       why: 'Testing every cell outward is O(cells^2) in the worst case. Two searches from the borders is O(cells), and the answer is a set intersection.' },
 
     { q: 'Is there a cycle in this DIRECTED graph?',
@@ -368,7 +410,9 @@ while stack:
     { q: 'Return a valid course ORDER, not just whether one exists.',
       base: 'The template already builds the order — the boolean version just throws it away.',
       change: 'Return the emitted list, and the empty list when the count check fails.',
-      code: `return order if len(order) == n else []`,
+      code: `if len(order) == n:
+    return order
+return []                     # fewer emitted -> a cycle blocked the rest`,
       why: 'The same machinery answers both. Recognising that "can it be done" and "how" are one algorithm apart is the point of the pair.' },
 
     { q: 'How many SEMESTERS, if unlimited courses can run in parallel?',
@@ -415,10 +459,12 @@ events.sort(key=lambda e: (e[0], -e[1]))   # closed: taken before freed`,
       base: 'The template counts concurrency; it does not choose what to keep.',
       change: 'Reverse the question into "keep the most", then greedily keep by EARLIEST END.',
       code: `intervals.sort(key=lambda x: x[1])      # by END, not start
-kept, last = 0, float('-inf')
-for s, e in intervals:
-    if s >= last:
-        kept += 1; last = e
+kept = 0
+last_end = float('-inf')
+for start, end in intervals:
+    if start >= last_end:     # compatible with everything kept so far
+        kept += 1
+        last_end = end
 return len(intervals) - kept`,
       why: 'Sorting by start is the intuitive choice and it is wrong: one long early interval blocks two short ones. Earliest end leaves the most room for everything after it.' },
 
@@ -548,9 +594,16 @@ dp[i] = number of ways to reach state i`,
       change: 'Compute an AREA instead, and append a trailing zero so the stack is forced to empty.',
       code: `heights.append(0)               # <- sentinel flushes the stack
 ...
-h = heights[stack.pop()]
-w = i - stack[-1] - 1 if stack else i
-best = max(best, h * w)`,
+height_of_bar = heights[stack.pop()]
+
+# The rectangle runs from just after the bar now on top of the stack
+# up to just before the current index.
+if stack:
+    width = i - stack[-1] - 1
+else:
+    width = i                 # nothing shorter to the left: spans 0..i-1
+
+best = max(best, height_of_bar * width)`,
       why: 'Without the sentinel, bars still on the stack at the end are never measured. The width comes from the index BELOW the popped one, not from the popped index itself.' },
 
     { q: 'Maximum of every window of size k.',
@@ -574,9 +627,11 @@ if dq[0] <= i - k:
       base: 'A monotonic stack solves it by filling horizontal layers on each pop.',
       change: 'Two pointers with running maxima is shorter and easier to defend. Mention both, code the simpler one.',
       code: `if left_max < right_max:
-    water += left_max - height[lo]; lo += 1
+    water += left_max - height[lo]
+    lo += 1
 else:
-    water += right_max - height[hi]; hi -= 1`,
+    water += right_max - height[hi]
+    hi -= 1`,
       why: 'Both are O(n). Choosing the one you can explain under pressure is a real interview skill, and saying you know the other exists costs one sentence.' },
   ],
 
@@ -587,8 +642,10 @@ else:
       code: `idx = {}
 def node(label):
     if label not in idx:
-        idx[label] = len(idx)
-        parent.append(idx[label]); size.append(1)
+        new_index = len(idx)
+        idx[label] = new_index
+        parent.append(new_index)   # a new node is its own root
+        size.append(1)
     return idx[label]`,
       why: 'In accounts-merge the nodes are emails, not accounts — unioning every email in a record is what merges the people. Getting the node choice right is most of the solution.' },
 
@@ -700,8 +757,13 @@ while fast:
       base: 'The template walks node.next.',
       change: 'Replace the successor function. Everything else is identical.',
       code: `def nxt(n):
-    return sum(int(d) ** 2 for d in str(n))
-slow, fast = nxt(n), nxt(nxt(n))`,
+    total = 0
+    for digit in str(n):
+        total += int(digit) ** 2
+    return total
+
+slow = nxt(n)
+fast = nxt(nxt(n))`,
       why: 'Any deterministic successor function defines a linked list. Recognising a number sequence as one is the entire point of these problems.' },
 
     { q: 'Is the linked list a palindrome, in O(1) space?',
@@ -759,8 +821,9 @@ second = reverse(mid)
       base: 'The template merges everything.',
       change: 'Pop only k times and stop — or binary search the VALUE range instead.',
       code: `for _ in range(k - 1):
-    heapq.heappop(h); push_successor()
-return h[0][0]
+    heapq.heappop(heap)
+    push_successor()
+return heap[0][0]
 # alternative: binary search on value, count cells <= mid`,
       why: 'You never need the full merge for one element. The binary-search-on-value version is O(n log(range)) and often beats the heap on a large matrix.' },
 
@@ -791,7 +854,10 @@ if cur_max - h[0][0] < best_span:
     { q: 'The weights are only 0 and 1.',
       base: 'The template uses a heap to maintain cost order.',
       change: 'A deque does it: zero-weight edges go on the front, one-weight on the back.',
-      code: `dq.appendleft(v) if w == 0 else dq.append(v)`,
+      code: `if weight == 0:
+    dq.appendleft(v)          # free move: same distance, so handle it next
+else:
+    dq.append(v)              # costs 1: strictly further away`,
       why: 'The deque stays sorted by distance for free, so you get O(V+E). This is the trick for grids where some moves are free.' },
 
     { q: 'The graph is time-dependent — a flight is only usable after you arrive.',
@@ -849,7 +915,10 @@ if cur_max - h[0][0] < best_span:
       base: 'The template allocates one bucket per possible value.',
       change: 'Do not. Either sort normally, or compress the coordinates first.',
       code: `# an array of 10^9 buckets to sort 100 items is absurd
-vals = sorted(set(xs)); rank = {v: i for i, v in enumerate(vals)}`,
+vals = sorted(set(xs))
+rank = {}
+for i, v in enumerate(vals):
+    rank[v] = i`,
       why: 'Counting sort trades space for time, and the trade only pays while the range is comparable to n. Checking the range before reaching for it is the judgement being tested.' },
 
     { q: 'Sort objects by a small integer field, keeping equal ones in order.',
@@ -865,7 +934,8 @@ for obj in items:
     { q: 'The input is 10^5 deep and it crashes.',
       base: 'The template uses the call stack, which Python caps near a thousand frames.',
       change: 'An explicit stack, or raise the limit and justify it.',
-      code: `import sys; sys.setrecursionlimit(10**6)   # quick, and say why it is safe
+      code: `import sys
+sys.setrecursionlimit(10**6)      # quick, and say why it is safe
 # or convert to an explicit stack, which always is`,
       why: 'Raising the limit works but risks a hard crash rather than a clean exception. Say which you chose and why — the interviewer is testing whether you noticed at all.' },
 
@@ -894,8 +964,15 @@ def solve(...):`,
     { q: 'Maximum PRODUCT instead of sum.',
       base: 'The template tracks a single running value.',
       change: 'Track the running minimum too — a negative times a negative becomes the new maximum.',
-      code: `cur_max, cur_min = max(x, cur_max * x, cur_min * x), \\
-                   min(x, cur_max * x, cur_min * x)`,
+      code: `# Compute BOTH from the OLD values before overwriting either one.
+extend_max = cur_max * x
+extend_min = cur_min * x
+
+new_max = max(x, extend_max, extend_min)
+new_min = min(x, extend_max, extend_min)
+
+cur_max = new_max
+cur_min = new_min`,
       why: 'Order matters: compute both from the OLD values, or the second line reads a variable you have already overwritten.' },
 
     { q: 'The array is circular.',
@@ -965,11 +1042,19 @@ for c in range(w, cap + 1):        # unbounded: UPWARD`,
     { q: 'Can the set be split into two halves with equal sums?',
       base: 'The template maximises value under a capacity.',
       change: 'It is subset-sum in disguise: target = total / 2, and the value is a boolean.',
-      code: `if total % 2: return False
-dp = [False] * (total // 2 + 1); dp[0] = True
+      code: `if total % 2 == 1:
+    return False              # an odd total cannot split evenly
+
+target = total // 2
+reachable = [False] * (target + 1)
+reachable[0] = True           # a sum of 0 needs no items
+
 for x in nums:
     for c in range(target, x - 1, -1):
-        dp[c] |= dp[c - x]`,
+        if reachable[c - x]:
+            reachable[c] = True
+
+return reachable[target]`,
       why: 'Recognising partition, subset sum and coin change as one template is worth more than memorising three. The odd-total early exit is free.' },
   ],
 
@@ -994,8 +1079,11 @@ x >>> 0        // force unsigned interpretation`,
     { q: 'Implement it without OrderedDict.',
       base: 'The template leans on a language feature that does the ordering for you.',
       change: 'A dict for lookup plus a doubly linked list for order, with sentinel head and tail nodes.',
-      code: `head <-> ... <-> tail          # sentinels remove every edge case
-def _touch(node): _unlink(node); _push_front(node)`,
+      code: `head <-> ... <-> tail         # sentinel nodes remove every edge case
+
+def touch(node):
+    unlink(node)              # take it out of wherever it currently is
+    push_front(node)          # and put it back as most-recently-used`,
       why: 'This is the version usually asked for. The sentinels are what stop the unlink and insert code needing null checks — the same technique as a dummy head.' },
 
     { q: 'Make it LFU — least FREQUENTLY used — instead.',
@@ -1025,10 +1113,15 @@ min_freq = ...                   # so eviction is still O(1)`,
       base: 'The template merges two halves and returns the merged list.',
       change: 'Count during the merge — every time you take from the right half, it jumps everything left in the left half.',
       code: `if a[i] <= b[j]:
-    out.append(a[i]); i += 1
+    out.append(a[i])
+    i += 1
 else:
-    out.append(b[j]); j += 1
-    inversions += len(a) - i        # <- the whole addition`,
+    out.append(b[j])
+    j += 1
+
+    # b[j] came out before everything still left in a, so it was
+    # smaller than all of them. That is len(a) - i inversions at once.
+    inversions += len(a) - i`,
       why: 'The merge already compares every cross-half pair implicitly. Counting there is free, which turns an O(n^2) count into O(n log n).' },
 
     { q: 'The halves are not independent — each depends on the other.',
@@ -1058,9 +1151,10 @@ B = sorted(subset_sums(xs[20:]))      # 10^6, fine
     { q: 'Count all palindromic substrings, not just the longest.',
       base: 'The template keeps the best result.',
       change: 'Count every successful expansion instead of comparing lengths.',
-      code: `while l >= 0 and r < len(s) and s[l] == s[r]:
-    total += 1                # <- each valid expansion IS a palindrome
-    l -= 1; r += 1`,
+      code: `while left >= 0 and right < len(s) and s[left] == s[right]:
+    total += 1                # each valid expansion IS one more palindrome
+    left -= 1
+    right += 1`,
       why: 'Every step outward that still matches is one more palindrome centred there. Same loop, a counter instead of a max.' },
 
     { q: 'O(n^2) is too slow — n is 10^5.',
@@ -1127,7 +1221,10 @@ while sub:
     { q: 'Return the actual subsequence, not its length.',
       base: 'The template keeps only the smallest tail per length, which is not a real subsequence.',
       change: 'Record a parent index each time you place a value, then walk the chain back.',
-      code: `parent[i] = tails_index[len(tails) - 1] if tails else -1`,
+      code: `if tails:
+    parent[i] = tails_index[len(tails) - 1]
+else:
+    parent[i] = -1            # this value starts a new subsequence`,
       why: 'The tails array is a bookkeeping device, not an answer. Being asked to reconstruct is the standard follow-up and it needs extra state.' },
   ],
 

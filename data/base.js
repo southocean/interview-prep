@@ -37,7 +37,7 @@ window.BASE = {
       ['bisect', 'bisect_left / insort on a sorted list. This is your stand-in for a TreeMap.'],
       ['functools.lru_cache', '@lru_cache(None) above a recursive function is instant memoisation.'],
       ['sort(key=...)', 'sorted(xs, key=lambda x: (x[1], -x[0])). Tuples sort element-wise -- free tie-breaking.'],
-      ['dict.get(k, default)', 'Removes most "if k not in d" branches. d.get(k, math.inf) is the idiom for shortest-path labels.'],
+      ['Prefer explicit branches', 'dict.get(k, default) is compact and hides a branch. In this repo we write `if k in d:` or use defaultdict, because a reader should never have to decode syntax to follow the algorithm.'],
       ['Ints are arbitrary precision', 'No overflow, ever. One less thing to reason about than C++ or Java.'],
       ['Recursion cap ~1000', 'sys.setrecursionlimit(10**6) or go iterative. A recursive DFS over 10^5 nodes WILL crash.'],
     ],

@@ -184,13 +184,21 @@ def depth(node):
 
 # Return one thing while RECORDING another -- the diameter shape
 best = 0
+
 def height(node):
     global best
     if not node:
         return 0
-    l, r = height(node.left), height(node.right)
-    best = max(best, l + r)        # record the path THROUGH this node
-    return 1 + max(l, r)           # report height upward
+
+    left_height = height(node.left)
+    right_height = height(node.right)
+
+    # The longest path THROUGH this node joins its two subtrees.
+    path_through_here = left_height + right_height
+    best = max(best, path_through_here)
+
+    # But what the PARENT needs is height, which is a different number.
+    return 1 + max(left_height, right_height)
 
 # TOP-DOWN: constraint passed in
 def valid(node, low, high):
@@ -310,7 +318,9 @@ while q:
             q.append(v)
 
 # The COUNT is the cycle detector. Do not add a second mechanism.
-return order if len(order) == len(nodes) else []`,
+if len(order) == len(nodes):
+    return order
+return []                     # some node never reached in-degree zero`,
       deviations: [
         ['Only "is it possible"', 'Course schedule I.', 'Same code, return the boolean len(order) == len(nodes). Nothing else changes.'],
         ['Constraints must be derived first', 'Alien dictionary — order the alphabet from sorted words.', 'The hard part is not the sort, it is extracting edges. Each adjacent word pair gives exactly ONE constraint: the first position where they differ. Also reject the invalid prefix case ("abc" before "ab").'],
@@ -509,13 +519,18 @@ def find(x):
     return x
 
 def union(a, b):
-    ra, rb = find(a), find(b)
-    if ra == rb:
-        return False                     # already together -> a cycle
-    if size[ra] < size[rb]:
-        ra, rb = rb, ra
-    parent[rb] = ra
-    size[ra] += size[rb]
+    root_a = find(a)
+    root_b = find(b)
+
+    if root_a == root_b:
+        return False              # already together -> this edge is a cycle
+
+    # Attach the smaller tree under the larger one, so trees stay shallow.
+    if size[root_a] < size[root_b]:
+        root_a, root_b = root_b, root_a
+
+    parent[root_b] = root_a
+    size[root_a] += size[root_b]
     return True
 
 groups = sum(1 for i in range(n) if find(i) == i)`,
@@ -583,7 +598,12 @@ def search(w, exact=True):
         if ch not in node:
             return False
         node = node[ch]
-    return END in node if exact else True`,
+
+    # We walked the whole word. For an exact match it must also be marked
+    # as a word ending; for a prefix match, arriving here is enough.
+    if exact:
+        return END in node
+    return True`,
       deviations: [
         ['Top-k per prefix', 'Search suggestions, three results per keystroke.', 'Store the best three AT each node during construction. Then every keystroke is O(1) instead of a subtree walk.'],
         ['Wildcards', '"." matches any character.', 'DFS over all children when you hit the wildcard. The trie becomes a search space rather than a lookup.'],
@@ -690,19 +710,32 @@ while h:
       also: ['tree-bfs', 'heap-topk'],
       template: `import heapq
 
-dist = {start: 0}
-h = [(0, start)]
-while h:
-    d, u = heapq.heappop(h)
-    if d > dist.get(u, float('inf')):
-        continue                      # a stale entry -- lazy deletion
+INF = float('inf')
+
+# Every node starts unreachable. Filling the dict up front means every
+# later line can just read dist[v] -- no defaults, no missing keys.
+dist = {}
+for node in all_nodes:
+    dist[node] = INF
+dist[start] = 0
+
+heap = [(0, start)]
+while heap:
+    distance_so_far, u = heapq.heappop(heap)
+
+    # A stale entry: we already found a better route to u after this one
+    # was pushed. Heaps cannot delete from the middle, so we skip instead.
+    if distance_so_far > dist[u]:
+        continue
+
     if u == goal:
-        return d                      # safe to stop the moment it pops
-    for v, w in g[u]:
-        nd = d + w
-        if nd < dist.get(v, float('inf')):
-            dist[v] = nd
-            heapq.heappush(h, (nd, v))`,
+        return distance_so_far        # safe to stop the moment it pops
+
+    for v, weight in g[u]:
+        new_distance = distance_so_far + weight
+        if new_distance < dist[v]:
+            dist[v] = new_distance
+            heapq.heappush(heap, (new_distance, v))`,
       deviations: [
         ['All weights equal', 'Every edge costs the same.', 'Use BFS. Dijkstra is strictly more machinery for the same answer.'],
         ['Weights are only 0 and 1', 'Some moves are free.', '0-1 BFS: a deque, appendleft for weight 0 and append for weight 1. O(V+E), no heap.'],

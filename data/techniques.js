@@ -80,9 +80,12 @@ rank = {v: i for i, v in enumerate(vals)}
       code: `def merge_sort(xs):
     if len(xs) <= 1:
         return xs
+
     mid = len(xs) // 2
-    a, b = merge_sort(xs[:mid]), merge_sort(xs[mid:])
-    return merge(a, b)          # linear combine`,
+    left_sorted = merge_sort(xs[:mid])
+    right_sorted = merge_sort(xs[mid:])
+
+    return merge(left_sorted, right_sorted)     # the linear combine step`,
       gotcha: 'Only pays when the halves are genuinely independent. If they share state, you are looking at DP instead.',
       also: [['pat', 'kway'], ['pat', 'quickselect'], ['pat', 'binary-index']],
     },
@@ -175,12 +178,16 @@ for i in range(len(s)):
       one: 'A handful of tricks worth knowing, and no more than a handful.',
       what: 'XOR cancels pairs, which finds a lone unmatched value in O(1) space. x & (x-1) clears the lowest set bit, so looping on it counts set bits in as many steps as there are ones. x & -x isolates that lowest bit.',
       when: 'Occasionally a warm-up, occasionally the O(1)-space escape hatch. Not worth deep study.',
-      code: `a ^ a == 0                # pairs cancel
-reduce(xor, xs)           # the one unpaired value
+      code: `# XOR cancels pairs, so whatever survives appeared an odd number of times.
+lone = 0
+for x in xs:
+    lone ^= x
+return lone
 
-x & (x - 1)               # clear lowest set bit
-x & -x                    # isolate lowest set bit
-x >> 1, x << 1            # halve, double`,
+x & (x - 1)               # clear the lowest set bit
+x & -x                    # isolate the lowest set bit
+x >> 1                    # halve
+x << 1                    # double`,
       gotcha: 'In JS all bitwise operators truncate to 32-bit SIGNED, so 1 << 31 goes negative even though plain numbers are exact to 2^53. Python integers are arbitrary precision and have no such trap.',
       also: [['tech', 'bitmask-enum'], ['tech', 'bitmask-dp']],
     },
@@ -220,8 +227,11 @@ prev = [0] * (n + 1)
 for i in range(1, m + 1):
     cur = [0] * (n + 1)
     for j in range(1, n + 1):
-        cur[j] = prev[j - 1] + 1 if a[i-1] == b[j-1] else max(prev[j], cur[j-1])
-    prev = cur
+        if a[i - 1] == b[j - 1]:
+            cur[j] = prev[j - 1] + 1        # characters match: extend
+        else:
+            cur[j] = max(prev[j], cur[j - 1])   # skip one side or the other
+    prev = cur                              # only the last row is ever read
 return prev[n]`,
       gotcha: 'Getting the iteration ORDER wrong silently reads cells that have not been filled yet. Write down which direction each dimension must be traversed before coding it.',
       also: [['pat', 'memo'], ['tech', 'knapsack'], ['tech', 'interval-dp']],
@@ -280,15 +290,24 @@ return len(tails)`,
       one: 'Weighted shortest path in O(V+E) when every weight is 0 or 1.',
       what: 'A deque instead of a heap: a zero-weight edge goes on the FRONT, a one-weight edge on the back. The deque stays sorted by distance without ever paying log n.',
       when: 'Grids where some moves are free, or "minimum number of changes to make a path exist".',
-      code: `dq = deque([start])
-dist = {start: 0}
+      code: `INF = float('inf')
+
+dist = {}
+for node in all_nodes:
+    dist[node] = INF
+dist[start] = 0
+
+dq = deque([start])
 while dq:
     u = dq.popleft()
-    for v, w in g[u]:
-        nd = dist[u] + w
-        if nd < dist.get(v, INF):
-            dist[v] = nd
-            dq.appendleft(v) if w == 0 else dq.append(v)`,
+    for v, weight in g[u]:
+        new_distance = dist[u] + weight
+        if new_distance < dist[v]:
+            dist[v] = new_distance
+            if weight == 0:
+                dq.appendleft(v)     # free move: same distance, go first
+            else:
+                dq.append(v)         # costs 1: strictly further, go last`,
       gotcha: 'Only valid for weights of exactly 0 and 1. Any other weight and you are back to Dijkstra.',
       also: [['pat', 'dijkstra'], ['pat', 'tree-bfs'], ['str', 'queue']],
     },
@@ -297,12 +316,22 @@ while dq:
       one: 'Shortest paths that survive negative edges, and detects negative cycles.',
       what: 'Relax every edge V−1 times. After that many rounds every shortest path is settled, because no simple path has more than V−1 edges. A further improvement on round V proves a negative cycle exists.',
       when: 'Negative weights, where Dijkstra is simply invalid. Also currency arbitrage, which is negative-cycle detection wearing a hat.',
-      code: `dist = {s: 0}
+      code: `INF = float('inf')
+
+dist = {}
+for node in all_nodes:
+    dist[node] = INF
+dist[source] = 0
+
+# V-1 rounds, because no simple path has more than V-1 edges
 for _ in range(V - 1):
-    for u, v, w in edges:
-        if dist.get(u, INF) + w < dist.get(v, INF):
-            dist[v] = dist[u] + w
-# one more pass: any improvement means a negative cycle`,
+    for u, v, weight in edges:
+        if dist[u] == INF:
+            continue                  # u is not reachable yet
+        if dist[u] + weight < dist[v]:
+            dist[v] = dist[u] + weight
+
+# One more round. Any further improvement means a negative cycle.`,
       gotcha: 'O(V·E), far slower than Dijkstra. Only reach for it when weights can be negative — and say why Dijkstra fails, because that is the point being tested.',
       also: [['pat', 'dijkstra'], ['pat', 'topo']],
     },

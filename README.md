@@ -75,11 +75,52 @@ edit, and the two directions cannot drift apart.
 To check the graph after editing content:
 
 ```bash
-node -e "global.window={};for(const f of ['base','tiers','patterns','structures','reflexes','problems','frontend'])require('./data/'+f+'.js');const P=window.PATTERNS.items,S=window.STRUCTURES.items,PR=window.PROBLEMS.items;const sid=new Set(S.map(s=>s.id)),pid=new Set(P.map(p=>p.id));let bad=[];P.forEach(p=>{(p.structures||[]).forEach(x=>{if(!sid.has(x))bad.push(p.id+' -> '+x)});(p.also||[]).forEach(x=>{if(!pid.has(x))bad.push(p.id+' -> also '+x)})});PR.forEach((r,i)=>{(r.pat||[]).forEach(x=>{if(!pid.has(x))bad.push('#'+(i+1)+' '+x)})});console.log(bad.length?bad:'all links resolve')"
+npm run check
 ```
 
-That check earned itself immediately: six `also` links pointed at pattern pages
-that did not exist, and the renderer was silently dropping them.
+That runs two gates. The first walks every reference — patterns to structures,
+techniques to families, problems to patterns, the lexicon, and every content
+file keyed by page id — and fails on anything that does not resolve. It earned
+itself immediately: six `also` links pointed at pattern pages that did not
+exist, and the renderer was silently dropping them.
+
+## Code style: comprehension, not brevity
+
+**The code on this site is teaching code, and it is optimised for reading.**
+
+Nam: *"they use a lot of syntax optimization that make the lines short at the
+cost of comprehension — what does this syntax do again? Very annoying."*
+
+That is worse than annoying. A reader who stops to decode syntax has lost the
+thread of the algorithm, which is the only thing the snippet exists to convey.
+Every character saved by a clever idiom is paid for in comprehension, and on a
+study site that is the wrong trade every time.
+
+So it is a gate, not a guideline. `tools/check-code-style.mjs` runs in
+`npm run check` and in the pre-commit hook, and it **fails the build** on:
+
+| Banned | Instead |
+| --- | --- |
+| `x if c else y` | a plain `if` / `else` block |
+| `a; b` on one line | one statement per line |
+| `if c: body` on one line | body on the next line, indented |
+| `dict.get(k, default)` | `if k in d:` or a `defaultdict`, and say which |
+| `:=` | assign on its own line first |
+| two `for` clauses in one comprehension | nested loops |
+| `functools.reduce` | write the loop |
+| `a, b = f(), g()` | two lines, and name anything used twice |
+| backslash continuation | restructure so each line stands alone |
+
+The list is deliberately narrow: constructs whose *meaning* is not obvious
+reading left to right. Ordinary Python stays. `defaultdict`, `heapq` and
+`enumerate` stay, because they are named concepts with pages explaining them
+rather than syntax puzzles.
+
+**Enable the hook** (once per clone):
+
+```bash
+git config core.hooksPath .githooks
+```
 
 ## Editing
 

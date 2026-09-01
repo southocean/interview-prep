@@ -1,0 +1,13 @@
+#!/bin/sh
+# Teaching code is optimised for comprehension, and every reference must
+# resolve. Both are gates, not guidelines, so they block the commit.
+#
+# Enabled with:  git config core.hooksPath .githooks
+# Bypass (do not): git commit --no-verify
+
+npm run --silent check || {
+  echo ""
+  echo "pre-commit: checks failed. Nothing committed."
+  echo "  npm run check      to see it again"
+  exit 1
+}
