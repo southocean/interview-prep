@@ -142,17 +142,19 @@ show an animation too."*
 `tools/check-anims.mjs` enforces it. Every pattern template, every technique code
 block and every deviation diff must have an animation keyed by its exact id.
 
-**It is a ratchet, not a wall.** The rule arrived after ~190 solutions were
-already written, and a gate that fails 190 times on day one is a gate that gets
-switched off — a permanently red build teaches nothing. So:
+**All 188 are done.** `tools/anim-debt.json` is empty, so this is now simply a
+hard rule: no solution ships without a way to watch it run.
 
-- **Anything new without an animation fails.** That is the part that matters:
-  you cannot add a solution without animating it.
-- Everything already uncovered is listed by name in `tools/anim-debt.json`.
-  That file is the honest backlog, and `npm run check` prints its size.
-- **The list may only shrink.** The moment a listed item gains an animation the
-  gate fails until its entry is deleted, so the debt cannot silently stall.
-  Adding to the list takes an edit that shows up in review.
+It got there as a ratchet, which is worth keeping in mind for the next large
+batch of content. The rule arrived after ~190 solutions were already written, and
+a gate that fails 190 times on day one is a gate that gets switched off. So the
+uncovered ids went into `anim-debt.json`, anything NEW failed immediately, and
+the list could only shrink — the gate fails when a listed item gains an animation
+until its entry is deleted, so the debt could not silently stall.
+`npm run anim-debt` settles it and can only remove.
+
+Eight batches, 171 hand-worked traces. None generated: a trace that disagreed
+with the code beside it would be worse than no trace.
 
 Structure `build` blocks are excluded on purpose: they show how a structure is
 *constructed*, not a problem being solved, so there is nothing to step through.

@@ -7,8 +7,13 @@
  * solutions were already written, and a gate that fails 190 times on day one is
  * a gate everybody switches off. A permanently red build teaches nothing.
  *
- * So it is a RATCHET, which is how a strict rule gets introduced to an existing
- * codebase without lying about the state of it:
+ * THE RATCHET HAS CLOSED. tools/anim-debt.json is empty: all 188 solutions have
+ * an animation, so this is now simply a hard rule. The mechanism stays because
+ * it is the honest way to absorb a large batch of new content -- add the ids to
+ * the debt file deliberately, in a commit somebody can see, rather than
+ * disabling the gate.
+ *
+ * How the ratchet worked, for whoever needs it next:
  *
  *   - Anything new without an animation FAILS. The rule is hard going forward,
  *     which is the part that actually matters -- you cannot add a solution
