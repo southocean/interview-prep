@@ -23,13 +23,9 @@
  * rather than buried in a TODO.
  */
 import { readFileSync, existsSync } from 'node:fs';
+import { loadData } from './data-files.mjs';
 
-const FILES = ['patterns', 'structures', 'techniques', 'deviations', 'anims', 'anims-b', 'anims-c'];
-const win = {};
-win.ANIMS = {};   // anims-b.js merges into this with Object.assign
-for (const f of FILES) {
-  new Function('window', readFileSync(`data/${f}.js`, 'utf8'))(win);
-}
+const win = loadData(readFileSync);
 
 const DEBT_FILE = 'tools/anim-debt.json';
 const debt = existsSync(DEBT_FILE) ? new Set(JSON.parse(readFileSync(DEBT_FILE, 'utf8')).uncovered) : new Set();

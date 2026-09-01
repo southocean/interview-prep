@@ -4,7 +4,7 @@
   "private": true,
   "description": "Study site for the Google Senior SWE (Web) loop. Static files, no dependencies.",
   "scripts": {
-    "check": "node tools/check-links.mjs && node tools/check-code-style.mjs && node tools/check-anims.mjs",
+    "check": "node tools/check-html.mjs && node tools/check-links.mjs && node tools/check-code-style.mjs && node tools/check-anims.mjs",
     "anim-debt": "node tools/prune-anim-debt.mjs",
     "serve": "python -m http.server 4180"
   }

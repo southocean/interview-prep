@@ -5,17 +5,11 @@
  * fails on any that does not resolve.
  */
 import { readFileSync } from 'node:fs';
+import { loadData } from './data-files.mjs';
 
-const FILES = ['base', 'lexicon', 'tiers', 'patterns', 'structures', 'techniques',
-  'refs', 'anims', 'anims-b', 'anims-c', 'worked', 'deviations', 'problems', 'frontend'];
 
-// The data files assign to `window.X`, so give them a window to assign to.
-const win = {};
-win.ANIMS = {};   // anims-b.js merges into this with Object.assign
-for (const f of FILES) {
-  const src = readFileSync(`data/${f}.js`, 'utf8');
-  new Function('window', src)(win);
-}
+// The data files assign to `window.X`, so loadData gives them a window.
+const win = loadData(readFileSync);
 
 const P = win.PATTERNS.items;
 const S = win.STRUCTURES.items;

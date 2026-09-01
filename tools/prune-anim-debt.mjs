@@ -5,12 +5,9 @@
  * it only ever removes -- it can never add, so it cannot be used to hide work.
  */
 import { readFileSync, writeFileSync } from 'node:fs';
+import { loadData } from './data-files.mjs';
 
-const win = {};
-win.ANIMS = {};
-for (const f of ['patterns', 'structures', 'techniques', 'deviations', 'anims', 'anims-b', 'anims-c']) {
-  new Function('window', readFileSync(`data/${f}.js`, 'utf8'))(win);
-}
+const win = loadData(readFileSync);
 const anims = new Set(Object.keys(win.ANIMS));
 
 const FILE = 'tools/anim-debt.json';
