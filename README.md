@@ -49,9 +49,21 @@ because a link that lands somewhere approximate is worse than no link.
 This is what makes it a site rather than a document.
 
 Every **pattern and technique page** carries **deviations, written as question
-and answer**: a real interview question, then the diff from the template — what
-it already does, what you change, the changed lines only, and why that is
-correct. 141 of them across all 47 pages.
+and answer**. 141 of them across all 47 pages, and each one carries the full set:
+
+- the **question**, as an interviewer would put it
+- the **full problem statement**, not a one-line hint
+- a worked **example** with real input and output
+- a **"Reduces to:"** line naming the textbook problem plus the delta — this is
+  the line that makes it land as a deviation rather than a separate problem
+- what the **template already does**, and what **you change**
+- the **diff** — the changed lines only
+- **why** the change is correct
+- a **step-through animation** of that specific variation, with a line stating
+  what differs from the template's own animation
+
+All eight fields are required by `npm run check`, so a half-written deviation
+fails the build rather than rendering as a gap.
 
 That section matters more than the template, because the template is the
 textbook version and the deviations are the interview. The code block being a

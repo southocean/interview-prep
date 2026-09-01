@@ -72,10 +72,12 @@ for (const key of Object.keys(win.ANIMS)) {
   }
 }
 
-// deviations must be complete -- a half-written one renders as a gap
+/* Deviations must be complete. `problem`, `example` and `reduces` are now
+   required too: coverage reached 141 of 141, so anything new missing them is a
+   regression rather than a backlog item. */
 for (const key of Object.keys(win.DEVIATIONS)) {
   win.DEVIATIONS[key].forEach((d, i) => {
-    for (const field of ['q', 'base', 'change', 'code', 'why']) {
+    for (const field of ['q', 'problem', 'example', 'reduces', 'base', 'change', 'code', 'why']) {
       if (!d[field] || !String(d[field]).trim()) bad.push(`deviations ${key}[${i}] missing ${field}`);
     }
   });
