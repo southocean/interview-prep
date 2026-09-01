@@ -57,8 +57,24 @@ for (const phrase of Object.keys(win.LEXICON)) {
 }
 
 // content keyed by page id
-for (const [name, obj] of [['worked', win.WORKED], ['anims', win.ANIMS], ['refs', win.REFS], ['deviations', win.DEVIATIONS]]) {
+for (const [name, obj] of [['worked', win.WORKED], ['refs', win.REFS], ['deviations', win.DEVIATIONS]]) {
   for (const key of Object.keys(obj)) if (!anyId.has(key)) bad.push(`${name} key "${key}" is not a page`);
+}
+
+/* Animations key either a page ("window") or one of its deviations
+   ("window/0"). A deviation animation whose index does not exist would render
+   nowhere at all, silently, so check the index too. */
+for (const key of Object.keys(win.ANIMS)) {
+  if (!key.includes('/')) {
+    if (!anyId.has(key)) bad.push(`anims key "${key}" is not a page`);
+    continue;
+  }
+  const [page, idx] = key.split('/');
+  if (!anyId.has(page)) {
+    bad.push(`anims key "${key}" names no page`);
+  } else if (!win.DEVIATIONS[page] || !win.DEVIATIONS[page][Number(idx)]) {
+    bad.push(`anims key "${key}" has no such deviation`);
+  }
 }
 
 // deviations must be complete -- a half-written one renders as a gap
@@ -79,6 +95,17 @@ for (const [name, list] of [['patterns', P], ['structures', S], ['techniques', T
   }
 }
 
+/* Coverage, reported rather than enforced: the fuller problem statements are
+   being added page by page, and a number that is visible gets finished. */
+let withProblem = 0, devTotal = 0;
+for (const key of Object.keys(win.DEVIATIONS)) {
+  for (const d of win.DEVIATIONS[key]) {
+    devTotal++;
+    if (d.problem && d.example && d.reduces) withProblem++;
+  }
+}
+const devAnims = Object.keys(win.ANIMS).filter((k) => k.includes('/')).length;
+
 const total = P.length + S.length + T.length;
 console.log(`links: ${total} pages (${P.length} patterns, ${S.length} structures, ${T.length} techniques), ` +
   `${PR.length} problems, ${Object.keys(win.LEXICON).length} lexicon entries`);
@@ -89,3 +116,5 @@ if (bad.length) {
   process.exit(1);
 }
 console.log('       every reference resolves');
+console.log(`       deviations: ${devTotal} total, ${withProblem} with a full problem statement, ` +
+  `${devAnims} with an animation`);

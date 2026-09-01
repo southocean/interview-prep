@@ -23,6 +23,12 @@ window.DEVIATIONS = {
 
   'hash-count': [
     { q: 'Group these words so that anagrams end up together.',
+      problem: 'Given a list of words, group them so that words which are anagrams of one another end up in the same group. Return the groups; their order and the order within them does not matter.',
+      example: `Input:   ["eat", "tea", "tan", "ate", "nat", "bat"]
+Output:  [["eat", "tea", "ate"], ["tan", "nat"], ["bat"]]
+
+"eat", "tea" and "ate" are the same letters reordered.`,
+      reduces: 'the same hash map, PLUS a derived key — you look up something computed FROM the value rather than the value itself.',
       base: 'The template maps a value straight to its index — the key IS the thing you saw.',
       change: 'Derive a canonical key first, so that things which are different but equivalent collide on purpose.',
       code: `groups = defaultdict(list)
@@ -32,6 +38,15 @@ for w in words:
       why: 'Anagrams are exactly the words with the same multiset of letters, and sorting is the cheapest canonical form of a multiset. A 26-length count tuple is O(n) rather than O(n log n) if pushed.' },
 
     { q: 'Count the subarrays that sum to exactly k.',
+      problem: 'Given an integer array (values may be negative) and an integer k, count the contiguous subarrays whose elements sum to exactly k. Count them all, including overlapping ones — do not just decide whether one exists.',
+      example: `Input:   xs = [3, 4, 7, 2, -3, 1, 4, 2],  k = 7
+Output:  4
+
+[3, 4]        sums to 7
+[7]           sums to 7
+[7, 2, -3, 1] sums to 7
+[1, 4, 2]     sums to 7`,
+      reduces: 'the same hash map, PLUS storing COUNTS instead of positions, and keying on a running prefix sum rather than on the values.',
       base: 'The template asks "have I seen this value?". Here you need "how many times have I seen it?".',
       change: 'Store counts rather than indices, key on the running prefix sum, and seed the map with the empty prefix.',
       code: `from collections import defaultdict
@@ -67,6 +82,12 @@ return total`,
       why: 'A subarray ending here sums to k exactly when some earlier prefix equals run − k. The {0: 1} seed is what lets a subarray starting at index 0 be counted at all.' },
 
     { q: 'Return the most frequent element, not just whether one exists.',
+      problem: 'Given an array, return the k most frequent values. Ties may be broken arbitrarily unless the problem says otherwise.',
+      example: `Input:   xs = [1, 1, 1, 2, 2, 3],  k = 2
+Output:  [1, 2]
+
+1 appears three times, 2 appears twice, 3 once.`,
+      reduces: 'the hash map for counting, PLUS a second structure for the ordering the map cannot provide.',
       base: 'The template gives O(1) membership, and nothing else — a hash map has no order.',
       change: 'Count with the map, then get order from somewhere else: a sort, a heap, or buckets.',
       code: `counts = Counter(xs)
@@ -77,6 +98,13 @@ heapq.nlargest(k, counts, key=counts.get) # O(n log k)
       why: 'Do not try to make the map maintain order. Pick the ordering structure by what k is: small k wants a heap, k near n wants a sort, and bounded counts allow buckets.' },
 
     { q: 'The keys are only lowercase letters. Can you do better?',
+      problem: 'Decide whether two strings are anagrams of each other, given that both contain only lowercase English letters.',
+      example: `Input:   s = "anagram",  t = "nagaram"
+Output:  True
+
+Input:   s = "rat",  t = "car"
+Output:  False`,
+      reduces: 'the same counting, PLUS swapping the container — a fixed 26-slot array where the dict was.',
       base: 'The template uses a dict, which hashes every key.',
       change: 'Swap the dict for a fixed-size array indexed by ord(ch) − ord("a").',
       code: `count = [0] * 26
@@ -88,19 +116,57 @@ return count_a == count_b        # arrays compare by value, dicts by content`,
 
   'two-pointers': [
     { q: 'Now find three numbers that sum to zero, with no duplicate triplets.',
+      problem: 'Given an integer array that may contain repeated values, return every unique triplet [a, b, c] with a + b + c == 0. Order inside a triplet does not matter, and the same triplet must not appear twice in the result even if the values occur several times in the input.',
+      example: `Input:   [-1, 0, 1, 2, -1, -4]
+Sorted:  [-4, -1, -1, 0, 1, 2]
+Output:  [[-1, -1, 2], [-1, 0, 1]]
+
+[-1, 0, 1] can be formed from either of the two -1s.
+It must appear ONCE.`,
+      reduces: 'the two-pointer pair search, run once per fixed first element, PLUS a rule that suppresses duplicates.',
       base: 'The template converges two pointers over the whole array.',
       change: 'Fix the first element with an outer loop and two-pointer the remainder — and skip equal values at both levels.',
-      code: `for i in range(len(xs) - 2):
-    if i > 0 and xs[i] == xs[i-1]:
-        continue                  # skip duplicate FIRST elements
-    lo, hi = i + 1, len(xs) - 1
+      code: `xs.sort()
+result = []
+
+for i in range(len(xs) - 2):
+    # SKIP 1 -- the fixed element.
+    # Equal values sit next to each other after sorting, so if xs[i] is the
+    # same value as last time, every triplet starting with it was already
+    # found. i > 0 guards the very first element.
+    if i > 0 and xs[i] == xs[i - 1]:
+        continue
+
+    lo = i + 1
+    hi = len(xs) - 1
     while lo < hi:
-        ...
-        while lo < hi and xs[lo] == xs[lo-1]:
-            lo += 1               # skip duplicate SECONDS after a match`,
-      why: 'O(n^2) rather than O(n^3). The duplicate skipping has to happen at both levels — doing only the outer one still emits repeated triplets, which is the usual failure here.' },
+        total = xs[i] + xs[lo] + xs[hi]
+
+        if total < 0:
+            lo += 1               # need a bigger sum
+        elif total > 0:
+            hi -= 1               # need a smaller sum
+        else:
+            result.append([xs[i], xs[lo], xs[hi]])
+            lo += 1
+            hi -= 1
+
+            # SKIP 2 -- the middle element, AFTER a match.
+            # lo has just moved, so xs[lo - 1] is the value we used. If the
+            # new xs[lo] equals it, the next step would pair the same value
+            # with the same partner and record the identical triplet.
+            while lo < hi and xs[lo] == xs[lo - 1]:
+                lo += 1`,
+      why: 'O(n^2) rather than O(n^3). Two skips because a value can repeat in two places: as the fixed element, and as the middle one after a match. Doing only the outer skip still emits repeated triplets, which is the usual failure here.' },
 
     { q: 'Same two pointers, but maximise the water held between two lines.',
+      problem: 'Given an array of heights, each a vertical line at that index, pick two lines so that the container they form with the x-axis holds the most water. Area is the shorter of the two heights multiplied by the distance between them. Return the maximum area.',
+      example: `Input:   [1, 8, 6, 2, 5, 4, 8, 3, 7]
+Output:  49
+
+Lines at index 1 (height 8) and index 8 (height 7):
+area = min(8, 7) x (8 - 1) = 7 x 7 = 49`,
+      reduces: 'the same converging two pointers, PLUS a different rule for deciding which pointer moves.',
       base: 'The template moves whichever side makes the SUM closer to a target.',
       change: 'Move whichever side LIMITS the metric — the shorter line.',
       code: `if height[lo] < height[hi]:
@@ -110,6 +176,13 @@ else:
       why: 'Width shrinks whatever you do, so the only way to improve is a taller limiting side. Moving the taller line can never help, and being able to say that sentence is the answer.' },
 
     { q: 'The array is not sorted, and sorting would destroy the answer.',
+      problem: 'Return the indices of two numbers that add to a target. The answer must be the ORIGINAL indices, so the array cannot be reordered — sorting it would give you positions in the sorted array, which is not what was asked.',
+      example: `Input:   xs = [3, 2, 4], target = 6
+Output:  [1, 2]
+
+Sorting gives [2, 3, 4] and the pair 2 + 4, but their
+indices are now 0 and 2 -- wrong for the caller.`,
+      reduces: 'nothing. The precondition two pointers depends on is gone, so it is a different pattern entirely.',
       base: 'The template depends entirely on sortedness for its monotonicity.',
       change: 'Abandon two pointers. Use a hash map for pair-finding, or a sliding window if the requirement is contiguous.',
       code: `# no two-pointer version exists; the invariant is gone
@@ -121,6 +194,12 @@ for i, x in enumerate(xs):
       why: 'Recognising when a pattern does NOT apply is worth as much as applying it. If order carries meaning you may not sort, and the monotonicity argument disappears with it.' },
 
     { q: 'Merge two sorted arrays into one.',
+      problem: 'Given two arrays that are each already sorted, produce one sorted array containing all their elements. Duplicates across the two inputs are kept — the output length is the sum of the input lengths.',
+      example: `Input:   a = [1, 3, 8],  b = [2, 3, 9, 11]
+Output:  [1, 2, 3, 3, 8, 9, 11]
+
+Both 3s survive. The output is 7 long.`,
+      reduces: 'two pointers again, but one per array and both moving FORWARD, instead of one array with pointers converging.',
       base: 'The template runs both pointers over a single array, converging.',
       change: 'One pointer per array, both moving forward, advancing whichever is behind.',
       code: `i = j = 0
@@ -139,6 +218,13 @@ out += b[j:]`,
 
   'window': [
     { q: 'Find the SHORTEST substring of s containing every character of t.',
+      problem: 'Given strings s and t, return the shortest substring of s that contains every character of t, counting repeats — if t has two "a"s, the window needs two. Return the empty string when no such substring exists.',
+      example: `Input:   s = "ADOBECODEBANC",  t = "ABC"
+Output:  "BANC"
+
+"ADOBEC" also contains A, B and C, and is 6 long.
+"BANC" is 4 long, and nothing shorter works.`,
+      reduces: 'the same expand-right / shrink-left window, PLUS moving the point at which the answer is recorded.',
       base: 'The template records the answer after the window has been made valid again — that finds the longest.',
       change: 'The recording point moves INSIDE the shrink loop, at each moment the window is still valid.',
       code: `while valid():
@@ -148,6 +234,13 @@ out += b[j:]`,
       why: 'For longest you want the biggest valid window, which is the moment before shrinking becomes necessary. For shortest you want the smallest, which is the moment before it becomes invalid. Same loop, opposite instant — and getting it backwards is the single most common window failure.' },
 
     { q: 'Longest substring with at most K distinct characters.',
+      problem: 'Given a string and an integer K, return the length of the longest substring containing at most K distinct characters. Repeats of an already-counted character are free — only the number of DIFFERENT characters is capped.',
+      example: `Input:   s = "eceba",  K = 2
+Output:  3
+
+"ece" uses only e and c -- two distinct, length 3.
+"eceb" would be three distinct, so it is not allowed.`,
+      reduces: 'the same window, PLUS a different definition of "invalid" — map size instead of a repeated character.',
       base: 'The template shrinks while a single character repeats.',
       change: 'The invalid condition becomes "too many distinct", so shrink on the size of the count map — and delete keys that reach zero.',
       code: `while len(count) > K:
@@ -158,6 +251,13 @@ out += b[j:]`,
       why: 'A key left at zero still counts towards len(), so the window silently allows K+1 distinct characters. The deletion is the whole fix.' },
 
     { q: 'Now make it EXACTLY K distinct, not at most.',
+      problem: 'Given a string and an integer K, count the substrings containing exactly K distinct characters. Not at most K, and not the longest — the count of substrings that hit K precisely.',
+      example: `Input:   s = "pqpqs",  K = 2
+Output:  7
+
+The seven are: pq, qp, pq, pqp, qpq, pqpq, qs
+"pqpqs" itself has three distinct, so it does not count.`,
+      reduces: 'two runs of the at-most-K window, subtracted. The window pattern is used unchanged, twice.',
       base: 'The template can only express "at most" — a window has no way to be told it is too small.',
       change: 'Do not write a new loop. Run the at-most function twice and subtract.',
       code: `def exactly(K):
@@ -165,6 +265,13 @@ out += b[j:]`,
       why: 'Windows are naturally monotonic in "at most" and hopeless at "exactly". This subtraction is worth memorising outright — it converts a hard variant into two calls of an easy one.' },
 
     { q: 'Return the maximum of every window of size k.',
+      problem: 'Given an array and a window size k, return the maximum of each window as it slides one position at a time from left to right. The output has len(xs) - k + 1 entries.',
+      example: `Input:   xs = [1, 3, -1, -3, 5, 3, 6, 7],  k = 3
+Output:  [3, 3, 5, 5, 6, 7]
+
+windows: [1,3,-1] [3,-1,-3] [-1,-3,5] [-3,5,3] [5,3,6] [3,6,7]
+maxima:      3         3          5        5       6       7`,
+      reduces: 'the fixed-size window, PLUS replacing the maintained quantity — a sum can be updated by arithmetic, a maximum cannot.',
       base: 'The template maintains a SUM, which updates by adding one and removing one.',
       change: 'A maximum does not update that way, so replace the counter with a monotonic deque of indices.',
       code: `while dq and xs[dq[-1]] <= x:
@@ -175,6 +282,13 @@ if dq[0] <= i - k:
       why: 'Removing an element from a sum is arithmetic; removing the maximum leaves you with no idea what the new maximum is. The deque keeps every candidate that could still become the max, in order.' },
 
     { q: 'Same question, but a subsequence rather than a subarray.',
+      problem: 'Find the longest strictly increasing SUBSEQUENCE: elements taken in order but not necessarily adjacent. A subarray must be contiguous; a subsequence may skip.',
+      example: `Input:   [10, 9, 2, 5, 3, 7, 101, 18]
+Output:  4
+
+The subsequence is [2, 3, 7, 18] -- indices 2, 4, 5, 7.
+Not contiguous, so no window can express it.`,
+      reduces: 'nothing. Contiguity is the precondition the window pattern rests on, and it is absent.',
       base: 'The template assumes contiguity — that is what makes "leaving the window" meaningful.',
       change: 'Not a window problem at all. Go to DP.',
       code: `# there is no window here; the elements need not be adjacent

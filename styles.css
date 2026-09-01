@@ -284,6 +284,10 @@ body.reviewing .qa[open] > summary { font-weight: 500; }
 .dev-q h4 { margin: 0; color: var(--ink); font: 500 15px/1.4 var(--font); }
 .dev-body { padding: 14px 18px 4px; }
 .dev-body p { font-size: 14px; margin: 0 0 10px; }
+.dev-problem { color: var(--ink); font-size: 14.5px !important; }
+.dev-example { margin: 0 0 12px; background: var(--bg); font-size: 12.5px; }
+.dev-reduces { color: var(--ink2); }
+.dev-reduces b { color: var(--warn); }
 .dev-base { color: var(--sec); }
 .dev-base b { color: var(--sec); }
 .dev-change { color: var(--ink2); }

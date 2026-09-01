@@ -178,7 +178,7 @@
    * not an explanation -- and steps at a deliberately slow 1.4s so the note has
    * time to be read.
    */
-  function animBlock(id) {
+  function animBlock(id, inline) {
     var spec = ANIMS[id];
     if (!spec) return null;
 
@@ -234,8 +234,12 @@
     // Leaving the page must not leave an interval running behind it.
     animTimers.push(function () { if (timer) clearInterval(timer); });
 
-    var box = el('div', { class: 'anim' }, [
+    var box = el('div', { class: 'anim' + (inline ? ' anim-inline' : '') }, [
       el('div', { class: 'anim-title', text: spec.title }),
+      spec.contrast ? el('div', { class: 'anim-contrast' }, [
+        el('b', { text: 'Against the template: ' }),
+        document.createTextNode(spec.contrast),
+      ]) : null,
       el('div', { class: 'anim-cells' }, cells),
       el('div', { class: 'anim-slots' }, slots),
       stat,
@@ -243,6 +247,10 @@
       el('div', { class: 'anim-ctl' }, [backBtn, playBtn, nextBtn, counter]),
     ]);
     paint();
+
+    // Inside a deviation card there is already a heading above; a second
+    // h2 would break the page's outline.
+    if (inline) return box;
     return frag([el('h2', { class: 'sec', text: 'Watch it run' }), box]);
   }
   var animTimers = [];
@@ -293,9 +301,17 @@
             el('h4', { text: d.q }),
           ]),
           el('div', { class: 'dev-body' }, [
+            // The full statement, so the reader is solving a real problem
+            // rather than a one-line hint at one.
+            d.problem ? el('p', { class: 'dev-problem', text: d.problem }) : null,
+            d.example ? el('pre', { class: 'dev-example' }, [el('code', { text: d.example })]) : null,
+            d.reduces ? el('p', { class: 'dev-reduces' }, [
+              el('b', { text: 'Reduces to: ' }), document.createTextNode(d.reduces),
+            ]) : null,
             el('p', { class: 'dev-base' }, [el('b', { text: 'Template already does: ' }), document.createTextNode(d.base)]),
             el('p', { class: 'dev-change' }, [el('b', { text: 'You change: ' }), document.createTextNode(d.change)]),
             pre(d.code),
+            animBlock(id + '/' + n, true),
             el('p', { class: 'dev-why' }, [el('b', { text: 'Why: ' }), document.createTextNode(d.why)]),
           ]),
         ]);
