@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Interview prep — Nam</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap top-in">
+    <h1>Interview prep</h1>
+    <p class="sub">Senior Software Engineer, Web Development &middot; Google</p>
+    <div class="controls">
+      <input id="q" type="search" placeholder="Filter by keyword&hellip;" aria-label="Filter content">
+      <label class="tog"><input type="checkbox" id="review"> Review mode <span class="hint">(hide answers)</span></label>
+      <button id="reset" type="button" class="ghost">Reset progress</button>
+    </div>
+  </div>
+</header>
+
+<nav class="tabs wrap" role="tablist" aria-label="Sections">
+  <button class="tab" role="tab" data-tab="dsa">DSA</button>
+  <button class="tab" role="tab" data-tab="frontend">Front-end round</button>
+  <button class="tab" role="tab" data-tab="design">System design</button>
+  <button class="tab" role="tab" data-tab="behaviour">Googleyness</button>
+</nav>
+
+<main id="main" class="wrap"></main>
+
+<footer class="wrap foot">
+  <p>Content lives in <code>data/*.js</code>. Progress and settings are stored in this browser only.</p>
+</footer>
+
+<script src="data/base.js"></script>
+<script src="data/tiers.js"></script>
+<script src="data/patterns.js"></script>
+<script src="data/topics.js"></script>
+<script src="data/frontend.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
