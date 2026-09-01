@@ -17,12 +17,13 @@ and a page per item.
 
 | Section | State | Covers |
 | --- | --- | --- |
-| **DSA** | Written | 5 foundation pages, 22 pattern pages, 12 structure pages |
+| **DSA** | Written | 5 foundation pages, 22 pattern pages, 25 technique pages, 12 structure pages |
 | **Reflexes** | Written | Cue→reflex, the nine triage questions, 15 named moves, reasoning→code, learning method |
 | **Problems** | Written | 61 problems, shuffled, difficulty hidden until solved, filterable by pattern |
 | **Front-end round** | Written | Implement-from-scratch classics, DOM, language depth, performance, component design |
 | **System design** | To write | Round format, the client-side→distributed gap, answer skeleton, numbers |
 | **Googleyness** | To write | Attributes scored, a STAR story bank, senior-scope framing |
+| **Index** | Written | All 59 pages in one alphabetical list |
 
 **Theme** — the Auto / Light / Dark control in the header. Auto follows the OS.
 The choice is stored and applied before first paint, so it never flashes.

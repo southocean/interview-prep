@@ -71,7 +71,9 @@
     var phrases = Object.keys(lex);
     phrases.forEach(function (ph) {
       var v = lex[ph], bits = v.split(':');
-      var href = bits[0] === 'pat' ? '#/dsa/pattern/' + bits[1] : '#/dsa/structure/' + bits[1];
+      var href = bits[0] === 'pat' ? '#/dsa/pattern/' + bits[1]
+        : bits[0] === 'tech' ? '#/dsa/technique/' + bits[1]
+        : '#/dsa/structure/' + bits[1];
       LEX[ph.toLowerCase()] = href;
     });
     var keys = Object.keys(LEX).sort(function (x, y) { return y.length - x.length; });
@@ -108,12 +110,38 @@
   var P = window.PATTERNS.items;
   var S = window.STRUCTURES.items;
   var PR = window.PROBLEMS.items;
+  var T = (window.TECHNIQUES || { items: [] }).items;
+  var REFS = window.REFS || {};
+  var ANIMS = window.ANIMS || {};
 
-  var patById = {}, strById = {};
+  var patById = {}, strById = {}, techById = {};
   P.forEach(function (p) { patById[p.id] = p; });
   S.forEach(function (s) { strById[s.id] = s; });
+  T.forEach(function (t) { techById[t.id] = t; });
 
-  var probsByPat = {}, probsByStr = {}, patsByStr = {};
+  /* One resolver for every kind of page, so a [kind, id] pair from any data
+     file becomes a link without the caller knowing which collection it is in. */
+  function ref(kind, id) {
+    if (kind === 'pat') return patById[id] && { href: '#/dsa/pattern/' + id, name: patById[id].name, kind: 'Pattern' };
+    if (kind === 'str') return strById[id] && { href: '#/dsa/structure/' + id, name: strById[id].name, kind: 'Structure' };
+    if (kind === 'tech') return techById[id] && { href: '#/dsa/technique/' + id, name: techById[id].name, kind: 'Technique' };
+    return null;
+  }
+  function refChip(pair, cls) {
+    var r = ref(pair[0], pair[1]);
+    return r ? a(r.href, r.name, cls || 'chip') : null;
+  }
+
+  /* Family is declared downward only (a technique names its parent); the list
+     of children is inverted here, same rule as everywhere else. */
+  var childrenOf = {};
+  T.forEach(function (t) {
+    if (!t.family) return;
+    var key = t.family[0] + ':' + t.family[1];
+    (childrenOf[key] = childrenOf[key] || []).push(t);
+  });
+
+  var probsByPat = {}, probsByStr = {}, patsByStr = {}, probsByTech = {};
   P.forEach(function (p) {
     (p.structures || []).forEach(function (sid) {
       (patsByStr[sid] = patsByStr[sid] || []).push(p);
@@ -133,10 +161,154 @@
       probsByStr[sid] = probsByStr[sid] || [];
       if (probsByStr[sid].indexOf(pr) === -1) probsByStr[sid].push(pr);
     });
+    (pr.tech || []).forEach(function (tid) {
+      (probsByTech[tid] = probsByTech[tid] || []).push(pr);
+    });
   });
 
   var patsSorted = P.slice().sort(function (x, y) { return x.rank - y.rank; });
   var strsSorted = S.slice().sort(function (x, y) { return x.rank - y.rank; });
+  var techSorted = T.slice().sort(function (x, y) { return x.rank - y.rank; });
+
+  // -------------------------------------------------------- animation player
+  /*
+   * One generic player for every animation: a row of cells, named pointers
+   * underneath, and a frame list. Starts PAUSED -- an animation that begins
+   * moving while you are still reading the code above it is an interruption,
+   * not an explanation -- and steps at a deliberately slow 1.4s so the note has
+   * time to be read.
+   */
+  function animBlock(id) {
+    var spec = ANIMS[id];
+    if (!spec) return null;
+
+    var i = 0, timer = null;
+    var cells = spec.cells.map(function (v) {
+      return el('div', { class: 'cell' }, [el('span', { text: String(v) })]);
+    });
+    var slots = spec.cells.map(function () { return el('div', { class: 'slot' }); });
+
+    var stat = el('div', { class: 'anim-stat' });
+    var note = el('p', { class: 'anim-note' });
+    var counter = el('span', { class: 'anim-count' });
+
+    function paint() {
+      var f = spec.frames[i];
+      cells.forEach(function (c, k) {
+        var inRange = f.range && k >= f.range[0] && k <= f.range[1];
+        c.classList.toggle('in', !!inRange);
+        c.classList.toggle('mark', !!(f.mark && f.mark.indexOf(k) !== -1));
+      });
+      slots.forEach(function (s, k) {
+        var names = Object.keys(f.ptrs || {}).filter(function (n) { return f.ptrs[n] === k; });
+        s.textContent = names.join(' ');
+        s.classList.toggle('on', names.length > 0);
+      });
+      stat.textContent = f.stat || '';
+      note.textContent = f.note || '';
+      counter.textContent = (i + 1) + ' / ' + spec.frames.length;
+      playBtn.textContent = timer ? 'Pause' : (i === spec.frames.length - 1 ? 'Replay' : 'Play');
+    }
+    function go(n) {
+      i = Math.max(0, Math.min(spec.frames.length - 1, n));
+      paint();
+    }
+    function stop() { if (timer) { clearInterval(timer); timer = null; } paint(); }
+    function play() {
+      if (timer) return stop();
+      if (i === spec.frames.length - 1) i = -1;
+      timer = setInterval(function () {
+        if (i >= spec.frames.length - 1) return stop();
+        go(i + 1);
+      }, 1400);
+      go(i + 1);
+    }
+
+    var backBtn = el('button', { class: 'ghost', type: 'button', 'aria-label': 'Previous step', text: '‹' });
+    var playBtn = el('button', { class: 'ghost', type: 'button', text: 'Play' });
+    var nextBtn = el('button', { class: 'ghost', type: 'button', 'aria-label': 'Next step', text: '›' });
+    backBtn.addEventListener('click', function () { stop(); go(i - 1); });
+    nextBtn.addEventListener('click', function () { stop(); go(i + 1); });
+    playBtn.addEventListener('click', play);
+
+    // Leaving the page must not leave an interval running behind it.
+    animTimers.push(function () { if (timer) clearInterval(timer); });
+
+    var box = el('div', { class: 'anim' }, [
+      el('div', { class: 'anim-title', text: spec.title }),
+      el('div', { class: 'anim-cells' }, cells),
+      el('div', { class: 'anim-slots' }, slots),
+      stat,
+      note,
+      el('div', { class: 'anim-ctl' }, [backBtn, playBtn, nextBtn, counter]),
+    ]);
+    paint();
+    return frag([el('h2', { class: 'sec', text: 'Watch it run' }), box]);
+  }
+  var animTimers = [];
+  function clearAnims() {
+    animTimers.forEach(function (f) { f(); });
+    animTimers = [];
+  }
+
+  // -------------------------------------------------------- worked example
+  /*
+   * The concrete problem, reasoned through, placed BEFORE the template. Reading
+   * a template you have no problem for is memorisation; reading one after you
+   * have watched it solve something is understanding.
+   */
+  function workedBlock(id) {
+    var w = (window.WORKED || {})[id];
+    if (!w) return null;
+    return frag([
+      el('h2', { class: 'sec', text: 'Worked example' }),
+      el('div', { class: 'worked' }, [
+        el('p', { class: 'w-problem', text: w.problem }),
+        el('p', { class: 'w-tell' }, [el('b', { text: 'How you know: ' }), document.createTextNode(w.tell)]),
+      ]),
+      el('ul', { class: 'steps' }, w.walk.map(function (step) {
+        return el('li', {}, [el('b', { text: step[0] }), linked('span', '', step[1])]);
+      })),
+    ]);
+  }
+
+  // ------------------------------------------------------------------- refs
+  function refsBlock(id) {
+    var list = REFS[id];
+    if (!list || !list.length) return null;
+    return frag([
+      el('h2', { class: 'sec', text: 'Further reading' }),
+      el('ul', { class: 'refs' }, list.map(function (r) {
+        return el('li', {}, [
+          el('span', { class: 'ref-kind ' + r[2], text: r[2] === 'viz' ? 'visual' : r[2] }),
+          el('a', { href: r[1], target: '_blank', rel: 'noopener noreferrer', text: r[0] }),
+        ]);
+      })),
+    ]);
+  }
+
+  // ----------------------------------------------------------------- family
+  function familyBlock(kind, id, item) {
+    var out = [];
+    if (item && item.family) {
+      var par = ref(item.family[0], item.family[1]);
+      if (par) {
+        out.push(el('p', { class: 'family' }, [
+          document.createTextNode('A deviation of '),
+          a(par.href, par.name),
+          document.createTextNode(' — read that first if it is not already familiar.'),
+        ]));
+      }
+    }
+    var kids = childrenOf[kind + ':' + id] || [];
+    if (kids.length) {
+      out.push(el('h2', { class: 'sec', text: 'Specialisations of this' }));
+      out.push(chipsOf(kids.map(function (k) {
+        return a('#/dsa/technique/' + k.id, k.name, 'chip');
+      })));
+    }
+    return out.length ? frag(out) : null;
+  }
 
   // ------------------------------------------------------------- persistence
   function store(key) {
@@ -221,6 +393,14 @@
           el('b', { text: s.name }), el('span', { text: s.one }),
         ]);
       })),
+
+      el('h2', { class: 'sec', text: 'Techniques' }),
+      el('p', { class: 'meta', text: window.TECHNIQUES.note }),
+      el('div', { class: 'grid' }, techSorted.map(function (t) {
+        return el('a', { class: 'tile', href: '#/dsa/technique/' + t.id }, [
+          el('b', { text: t.name }), el('span', { text: t.one }),
+        ]);
+      })),
     ]);
   }
 
@@ -267,6 +447,9 @@
         ['Cost', p.cost],
       ]),
 
+      workedBlock(p.id),
+      animBlock(p.id),
+
       el('h2', { class: 'sec', text: 'Template' }),
       pre(p.template),
 
@@ -291,6 +474,9 @@
 
       el('h2', { class: 'sec', text: 'Problems on this pattern' }),
       probChips(probsByPat[p.id]),
+
+      familyBlock('pat', p.id, null),
+      refsBlock(p.id),
     ]);
   }
 
@@ -340,7 +526,81 @@
       el('h2', { class: 'sec', text: 'Problems that use it' }),
       probChips(probsByStr[id]),
 
+      familyBlock('str', s.id, null),
+      animBlock(s.id),
+      refsBlock(s.id),
       quizOf(s.quiz),
+    ]);
+  }
+
+  // ------------------------------------------------------------- techniques
+  function techniquePage(id) {
+    var t = techById[id];
+    if (!t) return notFound();
+    var also = (t.also || []).map(function (pair) { return refChip(pair); }).filter(Boolean);
+
+    return frag([
+      el('p', { class: 'crumb' }, [a('#/dsa', 'DSA'), document.createTextNode(' / Techniques')]),
+      el('h1', { class: 'title', text: t.name }),
+      el('p', { class: 'tagline', text: t.one }),
+
+      familyBlock('tech', t.id, t),
+
+      el('h2', { class: 'sec', text: 'What it is' }),
+      el('p', { text: t.what }),
+
+      el('h2', { class: 'sec', text: 'When to reach for it' }),
+      el('p', { text: t.when }),
+
+      workedBlock(t.id),
+      animBlock(t.id),
+
+      el('h2', { class: 'sec', text: 'Code' }),
+      pre(t.code),
+
+      el('h2', { class: 'sec', text: 'The thing that goes wrong' }),
+      el('p', { class: 'gotcha', text: t.gotcha }),
+
+      el('h2', { class: 'sec', text: 'Related' }),
+      chipsOf(also),
+
+      el('h2', { class: 'sec', text: 'Problems that touch it' }),
+      probChips(probsByTech[t.id]),
+
+      refsBlock(t.id),
+    ]);
+  }
+
+  // ------------------------------------------------------- the whole index
+  function indexPage() {
+    function group(title, blurb, items, hrefFor, extra) {
+      var sorted = items.slice().sort(function (x, y) { return x.name.localeCompare(y.name); });
+      return frag([
+        el('h2', { class: 'sec', text: title + ' — ' + items.length }),
+        el('p', { class: 'meta', text: blurb }),
+        el('div', { class: 'rows' }, sorted.map(function (it) {
+          return el('div', { class: 'row' }, [
+            el('b', {}, [a(hrefFor(it), it.name)]),
+            el('span', { text: extra(it) }),
+          ]);
+        })),
+      ]);
+    }
+
+    return frag([
+      el('h1', { class: 'title', text: 'Index' }),
+      el('p', { class: 'tagline', text: 'Everything on the site with a page of its own, in one list. ' +
+        P.length + ' patterns, ' + S.length + ' structures and ' + T.length + ' techniques — ' +
+        (P.length + S.length + T.length) + ' pages. Alphabetical here rather than ranked, because this is for looking something up, not for deciding what to study next.' }),
+
+      group('Patterns', 'How you recognise a problem. Each page carries the signal, a template, and the deviations interviewers actually ask.',
+        P, function (x) { return '#/dsa/pattern/' + x.id; }, function (x) { return x.signal; }),
+
+      group('Structures', 'What the data sits in. Each page carries how it is built, a costs table, and what to know cold.',
+        S, function (x) { return '#/dsa/structure/' + x.id; }, function (x) { return x.one; }),
+
+      group('Techniques', 'The moves you make once you have recognised the problem. Smaller than a pattern, and often the whole difference between working and fast enough.',
+        T, function (x) { return '#/dsa/technique/' + x.id; }, function (x) { return x.one; }),
     ]);
   }
 
@@ -668,6 +928,13 @@
       side.appendChild(sGroup('dsa-pat2', 'Patterns · likely and rarer',
         t23.map(function (p) { return patLink(p, r); }), false));
 
+      side.appendChild(sGroup('dsa-tech', 'Techniques',
+        techSorted.map(function (t) {
+          return sLink('#/dsa/technique/' + t.id, t.name, {
+            active: r.kind === 'technique' && r.id === t.id, done: reviewed.get('tech-' + t.id),
+          });
+        }), false));
+
       side.appendChild(sGroup('dsa-str', 'Structures',
         strsSorted.map(function (s) {
           return sLink('#/dsa/structure/' + s.id, s.name, {
@@ -694,6 +961,11 @@
         });
       }), false));
 
+    } else if (r.sec === 'index') {
+      side.appendChild(sGroup('idx', 'Everything', [
+        sLink('#/index', 'The full index', { active: true, n: String(P.length + S.length + T.length) }),
+      ], true));
+
     } else if (r.sec === 'frontend') {
       side.appendChild(sGroup('fe', 'Front-end round', window.FRONTEND.groups.map(function (g, i) {
         return sLink('#/frontend/g/' + i, g.name, { active: r.kind === 'g' && r.id === String(i) });
@@ -717,6 +989,7 @@
       else n.removeAttribute('aria-current');
     });
 
+    clearAnims();
     buildSidebar(r);
     main.innerHTML = '';
 
@@ -724,6 +997,7 @@
     if (r.sec === 'dsa') {
       page = r.kind === 'pattern' ? patternPage(r.id)
         : r.kind === 'structure' ? structurePage(r.id)
+        : r.kind === 'technique' ? techniquePage(r.id)
         : r.kind === 'found' ? foundationPage(r.id)
         : dsaHome();
     } else if (r.sec === 'reflexes') {
@@ -732,6 +1006,8 @@
       page = problemsPage(r.kind === 'pattern' && patById[r.id] ? r.id : null);
     } else if (r.sec === 'frontend') {
       page = r.kind === 'g' ? frontendGroup(r.id) : frontendHome();
+    } else if (r.sec === 'index') {
+      page = indexPage();
     } else if (r.sec === 'design') {
       page = frag([el('h1', { class: 'title', text: 'System design' }),
         todo('Not written yet', 'Planned: the round format, the client-side to distributed gap, a reusable answer skeleton, and back-of-envelope numbers worth memorising. The real-time multiplayer client is the raw material.')]);
