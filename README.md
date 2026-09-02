@@ -151,9 +151,10 @@ reads as a pattern rather than as lines.
 Nam: *"provide also a pseudo code version for easy to understand framework...
 that you could read and understand the logic."*
 
-Every pattern template and every technique code block has a plain-English
-version — **the framework in words**, control words in caps, no language at all.
-The test it is written to: you can read one aloud and it still makes sense.
+**Every code block on the site** — all 47 pattern templates and technique
+blocks, and all 141 deviation diffs — has a plain-English version: **the
+framework in words**, control words in caps, no language at all. The test it is
+written to: you can read one aloud and it still makes sense.
 
 It is deliberately **not a transliteration of the Python**. Where the code has an
 idiom, the pseudocode has the intent — *"record the answer while the window is
@@ -170,27 +171,52 @@ of the plain-English version is that you read it **instead of** the code, not
 alongside it, and two full-height blocks pushed the deviations — the part that
 matters most — off the screen.
 
-**Two levels of control, deliberately:**
+**The control lives on the block, and nowhere else.** The first version put a
+*Pseudocode* switch in the header; Nam: *"that's not what I want. I want the
+toggler to be on the code itself, so each code block comes with a toggler."* He
+is right — which version you want is a per-block decision, and reaching for the
+top of the page to answer it is friction in the wrong place. The header button is
+gone.
 
-- the *Pseudocode* button in the header sets the **default** — which of the two
-  every block opens on, remembered across pages and visits, **on by default**
-  (only an explicit *off* turns it off, so a fresh browser gets words)
-- the tab strip on a block flips **that block only**, without touching the
-  default, because "show me the code for this one" should not change what the
-  next page does
+A click does record the choice, so blocks rendered **later** open the same way.
+Without that, every page would reset you to words and you would flip the same
+switch on all 188 blocks. It only ever sets the starting state of blocks not yet
+built — never a block already on screen.
 
 Both panes stay in the DOM and one is hidden in CSS, so switching is instant and
 cannot move your scroll position or restart a running animation. The selected tab
 carries the colour of the pane it opens, so which one you are reading is legible
 without reading either.
 
-`tools/check-links.mjs` requires one on all **47 of 47** pattern and technique
-pages, so this is a hard rule like the animations, not a backlog. Structure
-`build` blocks are excluded for the same reason: they show construction, not an
-algorithm running.
+### A deviation's pseudocode is a delta, not a second framework
 
-Content lives in `data/pseudo.js` (the 22 patterns) and `data/pseudo-b.js` (the
-25 techniques).
+The deviation code blocks are **diffs**, so their plain-English versions are
+deltas too — what the template already does, and the part that moves. Restating
+the whole framework there would bury the one thing that changed, which is the
+only thing worth reading twice.
+
+Three shapes, and **which one applies is itself the information**:
+
+| Shape | Means |
+| --- | --- |
+| `SAME AS THE TEMPLATE, except …` | a real deviation — the named line moves |
+| `RUN THE TEMPLATE TWICE …` | the variant reduces to two calls of the easy version |
+| `NOT THIS PATTERN …` | the precondition is absent; say so and name what replaces it |
+
+That third shape is why this was worth doing rather than skipping. A deviation
+like *"same question, but a subsequence rather than a subarray"* has no template
+to adapt — contiguity is what licensed the whole pattern. Reading **NOT THIS
+PATTERN** at a glance is the recognition being trained.
+
+`tools/check-links.mjs` requires one on all **47 of 47** pages and all **141 of
+141** deviations, so this is a hard rule like the animations, not a backlog — and
+the tab strip is never a tab strip with one tab. Structure `build` blocks are
+excluded for the same reason the animation gate excludes them: they show
+construction, not an algorithm running.
+
+Content lives in five files: `data/pseudo.js` (the 22 patterns), `pseudo-b.js`
+(the 25 techniques), and `pseudo-c.js` / `pseudo-d.js` / `pseudo-e.js` (the 141
+deviations).
 
 ## Every solution ships with an animation
 
@@ -234,7 +260,7 @@ data/patterns.js     per pattern: signal, idea, template, deviations, bugs, link
 data/structures.js   per structure: why, build, costs, cold, pitfalls, quiz
 data/problems.js     per problem: ask, difficulty, insight, pattern links
 data/reflexes.js     cues, triage, moves, translation, learning
-data/pseudo*.js      the framework in words, per pattern and technique
+data/pseudo*.js      the framework in words, per code block
 data/frontend.js     the front-end domain round
 app.js               router, sidebar, page renderers, derived indexes
 ```

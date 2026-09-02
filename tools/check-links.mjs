@@ -78,10 +78,27 @@ for (const key of Object.keys(win.ANIMS)) {
    constructed, not an algorithm running. Enforced rather than reported because
    coverage reached 47 of 47 in one pass, so a gap now is a regression. */
 for (const key of Object.keys(win.PSEUDO)) {
-  if (!anyId.has(key)) bad.push(`pseudo key "${key}" is not a page`);
+  if (!key.includes('/')) {
+    if (!anyId.has(key)) bad.push(`pseudo key "${key}" is not a page`);
+    continue;
+  }
+  const [page, idx] = key.split('/');
+  if (!anyId.has(page)) {
+    bad.push(`pseudo key "${key}" names no page`);
+  } else if (!win.DEVIATIONS[page] || !win.DEVIATIONS[page][Number(idx)]) {
+    bad.push(`pseudo key "${key}" has no such deviation`);
+  }
 }
 for (const x of [...P, ...T]) {
   if (!win.PSEUDO[x.id] || !win.PSEUDO[x.id].trim()) bad.push(`pseudo: ${x.id} has none`);
+}
+/* Deviations too: every code block on the site has a plain-English version
+   beside it, so the tab strip is never a tab strip with one tab. */
+for (const key of Object.keys(win.DEVIATIONS)) {
+  win.DEVIATIONS[key].forEach((d, i) => {
+    const k = `${key}/${i}`;
+    if (!win.PSEUDO[k] || !win.PSEUDO[k].trim()) bad.push(`pseudo: deviation ${k} has none`);
+  });
 }
 
 /* Deviations must be complete. `problem`, `example` and `reduces` are now
@@ -114,7 +131,8 @@ for (const key of Object.keys(win.DEVIATIONS)) {
   }
 }
 const devAnims = Object.keys(win.ANIMS).filter((k) => k.includes('/')).length;
-const pseudoCount = Object.keys(win.PSEUDO).length;
+const pseudoCount = Object.keys(win.PSEUDO).filter((k) => !k.includes('/')).length;
+const devPseudo = Object.keys(win.PSEUDO).filter((k) => k.includes('/')).length;
 
 const total = P.length + S.length + T.length;
 console.log(`links: ${total} pages (${P.length} patterns, ${S.length} structures, ${T.length} techniques), ` +
@@ -128,4 +146,5 @@ if (bad.length) {
 console.log('       every reference resolves');
 console.log(`       deviations: ${devTotal} total, ${withProblem} with a full problem statement, ` +
   `${devAnims} with an animation`);
-console.log(`       pseudocode: ${pseudoCount} of ${P.length + T.length} pattern and technique pages`);
+console.log(`       pseudocode: ${pseudoCount} of ${P.length + T.length} pattern and technique pages, ` +
+  `${devPseudo} of ${devTotal} deviations`);

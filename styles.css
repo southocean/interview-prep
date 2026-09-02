@@ -324,14 +324,6 @@ body.reviewing .qa[open] > summary { font-weight: 500; }
 .dual[data-show="words"] .dual-code { display: none; }
 .dual[data-show="code"] .dual-words { display: none; }
 
-.toggle {
-  font: inherit; font-size: 12px; padding: 6px 12px; border-radius: 999px;
-  border: 1px solid var(--line); background: transparent; color: var(--sec);
-  cursor: pointer; white-space: nowrap;
-}
-.toggle:hover { background: var(--card); color: var(--ink2); }
-.toggle[aria-pressed="true"] { background: var(--good-soft); color: var(--good); border-color: transparent; font-weight: 500; }
-
 /* ------------------------------------------------------ worked example -- */
 .worked { background: var(--blue-soft); border-radius: 12px; padding: 16px 18px; margin-bottom: 16px; }
 .w-problem { margin: 0 0 8px; color: var(--ink); font-size: 15px; }

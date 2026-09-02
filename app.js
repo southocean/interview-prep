@@ -331,7 +331,7 @@
             ]) : null,
             el('p', { class: 'dev-base' }, [el('b', { text: 'Template already does: ' }), document.createTextNode(d.base)]),
             el('p', { class: 'dev-change' }, [el('b', { text: 'You change: ' }), document.createTextNode(d.change)]),
-            pre(d.code),
+            codeBlock(id + '/' + n, d.code),
             animBlock(id + '/' + n, true),
             el('p', { class: 'dev-why' }, [el('b', { text: 'Why: ' }), document.createTextNode(d.why)]),
           ]),
@@ -488,45 +488,30 @@
     apply(current());
   })();
 
-  // ------------------------------------------------------- pseudocode toggle
+  // --------------------------------------------------------- tab strip wiring
   /*
-   * Two levels, deliberately. The header button is the DEFAULT -- which of the
-   * two every block opens on, remembered across pages and visits. The tab strip
-   * on a block flips that one block, without disturbing the default, because
-   * "show me the code for this one" should not change what the next page does.
+   * The control lives ON THE BLOCK -- there is no site-wide switch. Nam:
+   * "I want the toggler to be on the code itself, so each code block comes with
+   * a toggler, pseudo code or regular code." A header button was the wrong
+   * shape: which version you want is a per-block decision, and reaching for the
+   * top of the page to answer it is friction in the wrong place.
+   *
+   * A click still records the choice, so blocks rendered LATER open the same
+   * way -- otherwise every page would reset you to words and you would flip the
+   * same switch on all 47 of them. It changes only the starting state of blocks
+   * yet to be built, never a block already on screen.
+   *
+   * Delegated on #main, so it survives every re-render without a rewire step
+   * that a new page renderer could forget.
    */
-  (function pseudoToggle() {
-    var btn = document.getElementById('pseudo');
-    if (!btn) return;
-
-    function apply(on, persist) {
-      btn.setAttribute('aria-pressed', on ? 'true' : 'false');
-      if (persist) {
-        try { localStorage.setItem('prep-pseudo', on ? 'on' : 'off'); } catch (e) {}
-      }
-      // Bring every block already on the page into line with the new default.
-      var boxes = document.querySelectorAll('.dual');
-      Array.prototype.forEach.call(boxes, function (box) {
-        box.setAttribute('data-show', on ? 'words' : 'code');
-        markTabs(box);
-      });
-    }
-    btn.addEventListener('click', function () {
-      apply(btn.getAttribute('aria-pressed') !== 'true', true);
-    });
-
-    /* Delegated, so it keeps working across every re-render without a rewire
-       step that a new page renderer could forget. */
-    main.addEventListener('click', function (ev) {
-      var t = ev.target.closest ? ev.target.closest('.dual-tab') : null;
-      if (!t) return;
-      var box = t.closest('.dual');
-      box.setAttribute('data-show', t.dataset.w);
-      markTabs(box);
-    });
-
-    apply(pseudoWanted(), false);
-  })();
+  main.addEventListener('click', function (ev) {
+    var t = ev.target.closest ? ev.target.closest('.dual-tab') : null;
+    if (!t) return;
+    var box = t.closest('.dual');
+    box.setAttribute('data-show', t.dataset.w);
+    markTabs(box);
+    try { localStorage.setItem('prep-pseudo', t.dataset.w === 'words' ? 'on' : 'off'); } catch (e) {}
+  });
 
   // ------------------------------------------------------------------ router
   function parse() {
