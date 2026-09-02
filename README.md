@@ -146,6 +146,37 @@ be written from a real list, and nothing is lost to git history. That is the
 planned second stage: reintroduce them deliberately, once the expanded form
 reads as a pattern rather than as lines.
 
+## Every solution also ships with pseudocode
+
+Nam: *"provide also a pseudo code version for easy to understand framework...
+that you could read and understand the logic."*
+
+Every pattern template and every technique code block carries **the framework in
+words** directly above the real code — control words in caps, plain English, no
+language at all. The test it is written to: you can read one aloud and it still
+makes sense.
+
+It is deliberately **not a transliteration of the Python**. Where the code has an
+idiom, the pseudocode has the intent — *"record the answer while the window is
+valid"* rather than `best = max(best, right - left + 1)`. Each one ends with a
+**WHY IT WORKS** block, because on a technique page the why is usually the whole
+reason the trick is legal, and often the sentence you have to say out loud in the
+room before writing anything.
+
+**Toggle** — the *Pseudocode* button in the header, **on by default**. It hides
+by toggling a class on `<body>` rather than by re-rendering, so switching it is
+instant and does not reset your scroll position or a running animation. The
+choice persists, and only an explicit *off* turns it off — a fresh browser gets
+it on.
+
+`tools/check-links.mjs` requires one on all **47 of 47** pattern and technique
+pages, so this is a hard rule like the animations, not a backlog. Structure
+`build` blocks are excluded for the same reason: they show construction, not an
+algorithm running.
+
+Content lives in `data/pseudo.js` (the 22 patterns) and `data/pseudo-b.js` (the
+25 techniques).
+
 ## Every solution ships with an animation
 
 Nam: *"Make it a hard hook that every problem when showing solution needs to
@@ -188,6 +219,7 @@ data/patterns.js     per pattern: signal, idea, template, deviations, bugs, link
 data/structures.js   per structure: why, build, costs, cold, pitfalls, quiz
 data/problems.js     per problem: ask, difficulty, insight, pattern links
 data/reflexes.js     cues, triage, moves, translation, learning
+data/pseudo*.js      the framework in words, per pattern and technique
 data/frontend.js     the front-end domain round
 app.js               router, sidebar, page renderers, derived indexes
 ```

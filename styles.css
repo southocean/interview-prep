@@ -296,6 +296,28 @@ body.reviewing .qa[open] > summary { font-weight: 500; }
 .dev-why b { color: var(--good); }
 .dev-body pre { margin-bottom: 12px; }
 
+/* --------------------------------------------------------- pseudocode -- */
+.pseudo { margin: 0 0 14px; }
+.pseudo-tag {
+  display: flex; align-items: center; gap: 8px;
+  font: 500 11px/1.6 var(--font); letter-spacing: .07em; text-transform: uppercase;
+  color: var(--good); margin-bottom: 6px;
+}
+.pseudo pre {
+  background: var(--good-soft); border-color: transparent;
+  border-left: 3px solid var(--good); border-radius: 0 10px 10px 0;
+}
+.pseudo pre code { color: var(--ink2); font-size: 12.5px; line-height: 1.7; }
+body.no-pseudo .pseudo { display: none; }
+
+.toggle {
+  font: inherit; font-size: 12px; padding: 6px 12px; border-radius: 999px;
+  border: 1px solid var(--line); background: transparent; color: var(--sec);
+  cursor: pointer; white-space: nowrap;
+}
+.toggle:hover { background: var(--card); color: var(--ink2); }
+.toggle[aria-pressed="true"] { background: var(--good-soft); color: var(--good); border-color: transparent; font-weight: 500; }
+
 /* ------------------------------------------------------ worked example -- */
 .worked { background: var(--blue-soft); border-radius: 12px; padding: 16px 18px; margin-bottom: 16px; }
 .w-problem { margin: 0 0 8px; color: var(--ink); font-size: 15px; }

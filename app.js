@@ -113,6 +113,7 @@
   var T = (window.TECHNIQUES || { items: [] }).items;
   var REFS = window.REFS || {};
   var ANIMS = window.ANIMS || {};
+  var PSEUDO = window.PSEUDO || {};
 
   var patById = {}, strById = {}, techById = {};
   P.forEach(function (p) { patById[p.id] = p; });
@@ -339,6 +340,25 @@
     ]);
   }
 
+  // ------------------------------------------------------------ pseudocode
+  /*
+   * The framework in words, above the real code. Control words in caps, no
+   * language at all -- the point is that it reads aloud and still makes sense.
+   *
+   * Hidden by a body class rather than by re-rendering, so the toggle is
+   * instant and does not disturb scroll position or a running animation.
+   */
+  function pseudoBlock(id) {
+    var text = PSEUDO[id];
+    if (!text) return null;
+    return el('div', { class: 'pseudo' }, [
+      el('div', { class: 'pseudo-tag' }, [
+        el('span', { text: 'The framework, in words' }),
+      ]),
+      el('pre', {}, [el('code', { text: text })]),
+    ]);
+  }
+
   // -------------------------------------------------------- worked example
   /*
    * The concrete problem, reasoned through, placed BEFORE the template. Reading
@@ -436,6 +456,27 @@
       b.addEventListener('click', function () { apply(b.dataset.theme); });
     });
     apply(current());
+  })();
+
+  // ------------------------------------------------------- pseudocode toggle
+  (function pseudoToggle() {
+    var btn = document.getElementById('pseudo');
+    if (!btn) return;
+
+    function stored() {
+      // Default ON: only an explicit 'off' turns it off, so a first-time
+      // visitor and a cleared browser both get it.
+      try { return localStorage.getItem('prep-pseudo') !== 'off'; } catch (e) { return true; }
+    }
+    function apply(on) {
+      document.body.classList.toggle('no-pseudo', !on);
+      btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+      try { localStorage.setItem('prep-pseudo', on ? 'on' : 'off'); } catch (e) {}
+    }
+    btn.addEventListener('click', function () {
+      apply(btn.getAttribute('aria-pressed') !== 'true');
+    });
+    apply(stored());
   })();
 
   // ------------------------------------------------------------------ router
@@ -539,6 +580,7 @@
       animBlock(p.id),
 
       el('h2', { class: 'sec', text: 'Template' }),
+      pseudoBlock(p.id),
       pre(p.template),
 
       deviationsBlock(p.id, p.deviations),
@@ -636,6 +678,7 @@
       animBlock(t.id),
 
       el('h2', { class: 'sec', text: 'Code' }),
+      pseudoBlock(t.id),
       pre(t.code),
 
       deviationsBlock(t.id, null),

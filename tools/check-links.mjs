@@ -72,6 +72,18 @@ for (const key of Object.keys(win.ANIMS)) {
   }
 }
 
+/* Pseudocode: every pattern and every technique page must carry the
+   plain-English framework. Structure `build` blocks are excluded for the same
+   reason they are excluded from the animation gate -- they show how a thing is
+   constructed, not an algorithm running. Enforced rather than reported because
+   coverage reached 47 of 47 in one pass, so a gap now is a regression. */
+for (const key of Object.keys(win.PSEUDO)) {
+  if (!anyId.has(key)) bad.push(`pseudo key "${key}" is not a page`);
+}
+for (const x of [...P, ...T]) {
+  if (!win.PSEUDO[x.id] || !win.PSEUDO[x.id].trim()) bad.push(`pseudo: ${x.id} has none`);
+}
+
 /* Deviations must be complete. `problem`, `example` and `reduces` are now
    required too: coverage reached 141 of 141, so anything new missing them is a
    regression rather than a backlog item. */
@@ -102,6 +114,7 @@ for (const key of Object.keys(win.DEVIATIONS)) {
   }
 }
 const devAnims = Object.keys(win.ANIMS).filter((k) => k.includes('/')).length;
+const pseudoCount = Object.keys(win.PSEUDO).length;
 
 const total = P.length + S.length + T.length;
 console.log(`links: ${total} pages (${P.length} patterns, ${S.length} structures, ${T.length} techniques), ` +
@@ -115,3 +128,4 @@ if (bad.length) {
 console.log('       every reference resolves');
 console.log(`       deviations: ${devTotal} total, ${withProblem} with a full problem statement, ` +
   `${devAnims} with an animation`);
+console.log(`       pseudocode: ${pseudoCount} of ${P.length + T.length} pattern and technique pages`);

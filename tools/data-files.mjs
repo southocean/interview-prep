@@ -8,7 +8,7 @@
 export const DATA_FILES = [
   'base', 'lexicon', 'tiers', 'patterns', 'structures', 'techniques',
   'refs', 'anims', 'anims-b', 'anims-c', 'anims-d', 'anims-e', 'anims-f', 'anims-g', 'anims-h',
-  'worked', 'deviations', 'problems', 'reflexes', 'frontend',
+  'worked', 'deviations', 'pseudo', 'pseudo-b', 'problems', 'reflexes', 'frontend',
 ];
 
 /* ANIMS is merged into by the anims-* files with Object.assign, so it must
@@ -16,6 +16,7 @@ export const DATA_FILES = [
 export function loadData(readFileSync) {
   const win = {};
   win.ANIMS = {};
+  win.PSEUDO = {};
   for (const f of DATA_FILES) {
     win[`__file_${f}`] = true;
     new Function('window', readFileSync(`data/${f}.js`, 'utf8'))(win);
