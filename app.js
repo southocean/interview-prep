@@ -331,6 +331,7 @@
             ]) : null,
             el('p', { class: 'dev-base' }, [el('b', { text: 'Template already does: ' }), document.createTextNode(d.base)]),
             el('p', { class: 'dev-change' }, [el('b', { text: 'You change: ' }), document.createTextNode(d.change)]),
+            shapeCount(d.code) > 1 ? el('p', { class: 'meta', text: 'Two shapes below, and they are ALTERNATIVES -- pick the one whose conditions your problem meets. Neither calls the other.' }) : null,
             codeBlock(id + '/' + n, d.code),
             animBlock(id + '/' + n, true),
             el('p', { class: 'dev-why' }, [el('b', { text: 'Why: ' }), document.createTextNode(d.why)]),
@@ -359,6 +360,15 @@
   }
 
   /** A code block, paired with its plain-English version where one exists. */
+  /**
+   * How many independent SHAPES a template holds. A pattern whose block has
+   * several is a gallery of alternatives, not one program, and the page has to
+   * say so -- readers otherwise hunt for the call that joins them.
+   */
+  function shapeCount(codeText) {
+    return (String(codeText || "").match(/^# ---- SHAPE /gm) || []).length;
+  }
+
   function codeBlock(id, codeText) {
     var text = PSEUDO[id];
     if (!text) return pre(codeText);
@@ -613,7 +623,8 @@
       workedBlock(p.id),
       animBlock(p.id),
 
-      el('h2', { class: 'sec', text: 'Template' }),
+      el('h2', { class: 'sec', text: shapeCount(p.template) > 1 ? 'Template — ' + shapeCount(p.template) + ' shapes' : 'Template' }),
+      shapeCount(p.template) > 1 ? el('p', { class: 'meta', text: 'This pattern carries more than one shape. They are ALTERNATIVES, not steps — no snippet below calls another. Pick the one whose direction of information flow matches your problem.' }) : null,
       codeBlock(p.id, p.template),
 
       deviationsBlock(p.id, p.deviations),

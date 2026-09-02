@@ -178,6 +178,153 @@ list(reversed(xs))
 Three forms with different memory behaviour. The appendix should cover which is
 which, since a copy inside a loop is a real complexity bug.
 
+### Generator expression passed straight into a function
+
+```python
+# compressed
+stack.extend((c, False) for c in (node.right, node.left) if c)
+total = sum(w for u, v, w in edges if union(u, v))
+groups = sum(1 for i in range(n) if find(i) == i)
+q = deque((r, c) for r in range(R) for c in range(C) if grid[r][c] == SRC)
+
+# expanded
+if node.right:
+    stack.append((node.right, False))
+if node.left:
+    stack.append((node.left, False))
+```
+
+The single worst offender for a learner, because three separate ideas share one
+line: what is produced, what is iterated, and what is filtered out. Read left to
+right it makes no sense — the `for` in the middle governs the expression on the
+left, and the `if` at the end governs both.
+
+Two extra traps worth teaching when this comes back:
+
+- **No brackets of its own.** `f(x for y in z)` is a generator expression using
+  the *call's* parentheses. Write `f((x for y in z), other)` the moment there is
+  a second argument, or it is a syntax error.
+- **It is lazy.** The loop has not run when the expression is written. With
+  `sum(w for ... if union(u, v))` the side effect inside `union` happens during
+  the `sum`, not before it — which is fine here and a disaster elsewhere.
+
+### `dict.setdefault(key, default)`
+
+```python
+# compressed
+node = node.setdefault(ch, {})
+
+# expanded
+if ch not in node:
+    node[ch] = {}
+node = node[ch]
+```
+
+Same family as `dict.get(k, default)`, and worse: it hides a branch **and** a
+mutation **and** returns the value, three things in one call. The trie insert is
+where it shows up in nearly every published solution.
+
+Note the evaluation trap: `setdefault(ch, {})` builds a fresh `{}` on *every*
+call, even when the key already exists and the new dict is thrown away
+immediately. Harmless here, wasteful in a hot loop.
+
+### `for ... else` and `while ... else`
+
+```python
+# compressed
+for x, y in zip(a, b):
+    if x != y:
+        edges.add((x, y))
+        break
+else:
+    if len(a) > len(b):
+        return ''
+
+# expanded
+found_difference = False
+for j in range(shared):
+    if a[j] != b[j]:
+        edges.add((a[j], b[j]))
+        found_difference = True
+        break
+
+if not found_difference and len(a) > len(b):
+    return ''
+```
+
+The `else` runs only when the loop finished **without** breaking. Almost nobody
+recalls that under interview pressure, and the ones who do still have to pause.
+The name is the problem: it reads as "otherwise", but it means "no break".
+
+An explicit flag costs two lines and asks nothing of the reader.
+
+### A call nested inside another call
+
+```python
+# compressed
+heapq.heappush(high, -heapq.heappop(low))
+
+# expanded
+largest_low = -heapq.heappop(low)     # undo the negation to read the value
+heapq.heappush(high, largest_low)
+```
+
+Has to be read inside out, and here it also hides the negate/un-negate dance
+that makes a min-heap behave as a max-heap. Naming the intermediate is where the
+explanation goes.
+
+### Two calls in one expression
+
+```python
+# compressed
+key = ''.join(sorted(w))
+
+# expanded
+letters = sorted(w)        # a LIST of characters
+key = ''.join(letters)     # glued back into a string
+```
+
+The anagram key. The compressed form is genuinely idiomatic Python and worth
+knowing — but it depends on knowing that `sorted` on a string returns a *list*,
+not a string, which is exactly the fact a learner does not have yet.
+
+### Pairwise iteration with `zip`
+
+```python
+# compressed
+for a, b in zip(words, words[1:]):
+
+# expanded
+for i in range(len(words) - 1):
+    a = words[i]
+    b = words[i + 1]
+```
+
+Elegant, and it stops at the shorter sequence for free. It also allocates a copy
+of the list (`words[1:]`), which is worth mentioning when this comes back —
+`itertools.pairwise` does the same thing without the copy.
+
+### Argsort: sorting indices by their values
+
+```python
+# compressed
+order = sorted(range(len(xs)), key=lambda i: xs[i])
+
+# expanded
+pairs = []
+for i, x in enumerate(xs):
+    pairs.append((x, i))      # value FIRST, so sorting orders by value
+pairs.sort()
+
+order = []
+for value, i in pairs:
+    order.append(i)
+```
+
+Three concepts at once: sorting a range rather than the data, a key function,
+and a closure reading `xs`. The expanded form leans on tuple comparison instead,
+which is a thing the site teaches anyway.
+
 ## Also worth a section, when this is written
 
 - **`sorted(key=...)` with tuple keys**, including the negation trick for mixed

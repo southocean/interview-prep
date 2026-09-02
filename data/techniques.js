@@ -33,7 +33,9 @@ xs.sort(key=lambda w: (len(w), w))       # tuples compare element-wise
       what: 'Skip comparisons entirely: count how many of each value there are, then read the counts back out in order. Beats the n log n lower bound because it is not a comparison sort.',
       when: 'Values are bounded and the range is not much bigger than n — ages, scores out of 100, minutes in a day, letter frequencies. Also the O(n) route for "top k frequent", where counts are bounded by n.',
       code: `# top-k frequent in O(n): counts cannot exceed n, so bucket by count
-buckets = [[] for _ in range(len(nums) + 1)]
+buckets = []
+for _ in range(len(nums) + 1):
+    buckets.append([])        # a FRESH list each time; [[]] * n shares one
 for val, c in Counter(nums).items():
     buckets[c].append(val)
 
@@ -51,7 +53,9 @@ for c in range(len(buckets) - 1, 0, -1):
       what: 'Sort the distinct values, map each to its index, and work in index space. A range of 10^9 collapses to a range of n, which makes arrays and difference arrays affordable again.',
       when: 'Timestamps, prices or coordinates that are enormous in range but few in number, especially before a sweep or a difference array.',
       code: `vals = sorted(set(all_values))
-rank = {v: i for i, v in enumerate(vals)}
+rank = {}
+for i, v in enumerate(vals):
+    rank[v] = i
 # now index into an array of len(vals) instead of len(10**9)`,
       gotcha: 'You must map back at the end if the answer is a value rather than a count. And compression destroys the DISTANCES between values, so it is wrong whenever the gaps matter.',
       also: [['pat', 'sweep'], ['pat', 'prefix'], ['tech', 'counting-sort']],
@@ -97,7 +101,10 @@ rank = {v: i for i, v in enumerate(vals)}
       code: `# subset sums of each half, then pair them up
 A = all_subset_sums(xs[:n//2])
 B = sorted(all_subset_sums(xs[n//2:]))
-best = max(a + largest_b_at_most(target - a, B) for a in A)`,
+best = 0
+for a in A:
+    b = largest_b_at_most(target - a, B)
+    best = max(best, a + b)`,
       gotcha: 'Rare in interviews. Recognise it from the n ≈ 40 constraint and say the name; you will rarely be asked to code it fully.',
       also: [['pat', 'backtracking'], ['tech', 'bitmask-enum']],
     },
@@ -108,7 +115,8 @@ best = max(a + largest_b_at_most(target - a, B) for a in A)`,
       one: 'Maximum-sum contiguous subarray in one pass, O(1) space.',
       what: 'At each position ask one question: is it better to extend the run so far, or start fresh here? That is a one-line DP with the table collapsed to a single variable.',
       when: '"Maximum sum subarray", and its relatives — maximum product, best time to buy and sell stock, circular variants.',
-      code: `best = cur = xs[0]
+      code: `cur = xs[0]
+best = xs[0]
 for x in xs[1:]:
     cur = max(x, cur + x)     # extend, or restart at x
     best = max(best, cur)
@@ -126,7 +134,10 @@ for x in xs:
     i = abs(x) - 1
     if xs[i] > 0:
         xs[i] = -xs[i]
-missing = [i + 1 for i, x in enumerate(xs) if x > 0]
+missing = []
+for i, x in enumerate(xs):
+    if x > 0:                 # never negated, so i + 1 was absent
+        missing.append(i + 1)
 
 # cyclic sort: put each value where it belongs
 i = 0
@@ -197,7 +208,10 @@ x << 1                    # double`,
       what: 'Each integer is a subset: bit i set means item i is included. Iterating 0..2^n−1 therefore iterates every subset, with no recursion at all.',
       when: 'n ≤ 20. It is the iterative alternative to backtracking for subsets, and it is easier to get right because there is no un-choose step.',
       code: `for mask in range(1 << n):
-    subset = [xs[i] for i in range(n) if mask & (1 << i)]`,
+    subset = []
+    for i in range(n):
+        if mask & (1 << i):        # bit i is set, so take xs[i]
+            subset.append(xs[i])`,
       gotcha: 'Only viable up to about n = 20; beyond that 2^n stops being a number you can loop over.',
       also: [['pat', 'backtracking'], ['tech', 'meet-in-middle']],
     },
@@ -210,8 +224,14 @@ x << 1                    # double`,
 def best(mask, pos):
     if mask == (1 << n) - 1:
         return 0
-    return min(cost[pos][j] + best(mask | (1 << j), j)
-               for j in range(n) if not mask & (1 << j))`,
+
+    cheapest = float('inf')
+    for j in range(n):
+        if mask & (1 << j):
+            continue                  # j has already been visited
+        rest = best(mask | (1 << j), j)
+        cheapest = min(cheapest, cost[pos][j] + rest)
+    return cheapest`,
       gotcha: 'The state space is n·2^n, so it is fine at n = 15 and hopeless at n = 30. Check the constraint before committing.',
       also: [['pat', 'memo'], ['tech', 'bitmask-enum']],
     },
@@ -261,8 +281,11 @@ for c in range(w, cap + 1):
       code: `for length in range(2, n + 1):          # SHORT ranges first
     for i in range(n - length + 1):
         j = i + length - 1
-        dp[i][j] = min(dp[i][k] + dp[k+1][j] + cost(i, k, j)
-                       for k in range(i, j))`,
+        cheapest = float('inf')
+        for k in range(i, j):           # every split point inside i..j
+            total = dp[i][k] + dp[k+1][j] + cost(i, k, j)
+            cheapest = min(cheapest, total)
+        dp[i][j] = cheapest`,
       gotcha: 'Iterate by increasing LENGTH, not by i then j — otherwise the sub-ranges you depend on have not been computed yet.',
       also: [['pat', 'memo'], ['tech', 'tabulation']],
     },

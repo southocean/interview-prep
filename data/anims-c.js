@@ -14,16 +14,16 @@ Object.assign(window.ANIMS, {
   // ============================================================== tree-dfs ==
 
   'tree-dfs': {
-    title: 'Max depth of  1(2(4,5), 3)  — nodes in level order',
+    title: 'Height of  1(2(4,5), 3)  — nodes in level order',
     cells: [1, 2, 3, 4, 5],
     label: 'nodes:',
     frames: [
       { stat: '1 has children 2 and 3;  2 has children 4 and 5', note: 'Read the shape first. 4 and 5 are leaves, 3 is a leaf, so the tree is three levels deep.' },
-      { ptrs: { at: 3 }, mark: [3], stat: 'depth(4) = 1', note: 'Postorder: children answer before parents. A leaf has no children, so 1 + max(0, 0) = 1.' },
-      { ptrs: { at: 4 }, mark: [4], stat: 'depth(5) = 1', note: 'Same for the other leaf. Neither knows anything about the rest of the tree — that is the contract.' },
-      { ptrs: { at: 1 }, mark: [1, 3, 4], stat: 'depth(2) = 1 + max(1, 1) = 2', note: 'Node 2 combines what its children reported. It never re-walks them.' },
-      { ptrs: { at: 2 }, mark: [2], stat: 'depth(3) = 1', note: 'The other leaf.' },
-      { ptrs: { at: 0 }, mark: [0, 1, 2], stat: 'depth(1) = 1 + max(2, 1) = 3', note: 'The root takes the deeper side. Answer 3, each node visited exactly once, O(n) with O(h) stack.' },
+      { ptrs: { at: 3 }, mark: [3], stat: 'height(4) = 1', note: 'Postorder: children answer before parents. A leaf has no children, so 1 + max(0, 0) = 1.' },
+      { ptrs: { at: 4 }, mark: [4], stat: 'height(5) = 1', note: 'Same for the other leaf. Neither knows anything about the rest of the tree — that is the contract.' },
+      { ptrs: { at: 1 }, mark: [1, 3, 4], stat: 'height(2) = 1 + max(1, 1) = 2', note: 'Node 2 combines what its children reported. It never re-walks them.' },
+      { ptrs: { at: 2 }, mark: [2], stat: 'height(3) = 1', note: 'The other leaf.' },
+      { ptrs: { at: 0 }, mark: [0, 1, 2], stat: 'height(1) = 1 + max(2, 1) = 3', note: 'The root takes the deeper side. Answer 3, each node visited exactly once, O(n) with O(h) stack.' },
     ],
   },
 

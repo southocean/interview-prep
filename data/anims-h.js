@@ -10,7 +10,7 @@ Object.assign(window.ANIMS, {
     contrast: 'The base initialises from xs[0]. Starting from 0 looks harmless and silently returns 0.',
     cells: [-3, -1, -4],
     frames: [
-      { mark: [0], stat: 'best = cur = xs[0] = -3', note: 'Initialising from the first element, as the template does.' },
+      { mark: [0], stat: 'cur = -3,  best = -3', note: 'Both start at xs[0], as the template does -- not at zero.' },
       { mark: [1], stat: 'cur = max(-1, -3 + -1) = -1   best = -1', note: 'Restarting beats extending. The best subarray is the least-bad single element.' },
       { mark: [2], stat: 'cur = max(-4, -1 + -4) = -4   best = -1', note: 'Answer -1, which is correct: the empty subarray is not allowed.' },
       { stat: 'now start from 0 instead', note: 'best = 0, cur = 0 — the version that looks tidier.' },

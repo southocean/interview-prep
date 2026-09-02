@@ -68,7 +68,7 @@ Object.assign(window.ANIMS, {
     cells: [1, 1, 1, 2, 2, 3],
     frames: [
       { range: [0, 5], stat: 'counts {1:3, 2:2, 3:1}', note: 'A count can never exceed n = 6, so the values being ordered live in a small fixed range.' },
-      { stat: 'buckets = [[] for _ in range(n+1)]', note: 'One slot per possible count. No comparisons will happen at all.' },
+      { stat: 'buckets: an empty list for each count 0..n', note: 'One slot per possible count. No comparisons will happen at all.' },
       { mark: [0, 1, 2], stat: 'buckets[3] = [1]', note: 'File each value under its own count.' },
       { mark: [3, 4], stat: 'buckets[2] = [2]', note: 'Placement is O(1) per distinct value.' },
       { mark: [5], stat: 'buckets[1] = [3]', note: 'Table complete after one pass over the counts.' },
@@ -82,7 +82,7 @@ Object.assign(window.ANIMS, {
     cells: [5, 900000000, 42],
     frames: [
       { stat: 'n = 3, range = 10^9', note: 'Three items, a billion possible values. The trade has inverted.' },
-      { stat: 'buckets = [[] for _ in range(10**9)]', note: 'Gigabytes of empty lists to sort three numbers. It would not even allocate.' },
+      { stat: 'buckets: an empty list for each of 10^9 values', note: 'Gigabytes of empty lists to sort three numbers. It would not even allocate.' },
       { mark: [0, 2], stat: 'sorting 3 items: trivial', note: 'O(n log n) on n = 3 is nothing. Counting sort solves a problem that does not exist here.' },
       { stat: 'rule: range must be O(n)-ish', note: 'Ages, scores out of 100, minutes in a day, letter frequencies. Check the range before reaching for it.' },
       { mark: [0, 1, 2], stat: 'or compress: {5:0, 42:1, 9e8:2}', note: 'Coordinate compression maps the three distinct values onto 0..2, and then bucketing is affordable again.' },

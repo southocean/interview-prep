@@ -36,7 +36,9 @@ for i, x in enumerate(xs):
 # group by a DERIVED key
 groups = defaultdict(list)
 for w in words:
-    groups[''.join(sorted(w))].append(w)`,
+    letters = sorted(w)             # a LIST of characters, in order
+    key = ''.join(letters)          # every anagram produces the same key
+    groups[key].append(w)`,
       deviations: [
         ['The key is not the value', 'The problem groups things that are not equal but are equivalent.', 'Derive a canonical key: sorted letters for anagrams, a 26-length count tuple, a normalised form. Choosing the key IS the solution — say what your key is out loud.'],
         ['Counting subarrays, not elements', 'It asks how many subarrays sum to k, rather than whether one exists.', 'Map running prefix sum → how many times seen, and seed it with {0: 1} for the empty prefix. That seed is the single most common bug in this family.'],
@@ -90,7 +92,8 @@ return w                 # w is the new length`,
       template: `# VARIABLE window: longest valid
 from collections import defaultdict
 count = defaultdict(int)
-left = best = 0
+left = 0
+best = 0
 for right, ch in enumerate(s):
     count[ch] += 1
     while count[ch] > 1:              # while INVALID, shrink
@@ -176,13 +179,15 @@ return lo`,
       cost: 'O(n) time, O(h) stack.',
       structures: ['tree'],
       also: ['tree-bfs', 'memo', 'backtracking'],
-      template: `# POSTORDER: children report upward
-def depth(node):
+      template: `# ---- SHAPE 1: bare postorder. Children report upward. ----
+def height(node):
     if not node:
         return 0
-    return 1 + max(depth(node.left), depth(node.right))
+    return 1 + max(height(node.left), height(node.right))
 
-# Return one thing while RECORDING another -- the diameter shape
+# ---- SHAPE 2: the same recursion, plus a RECORDED side-value. ----
+#      This is the diameter problem. The return value is STILL height --
+#      best is the answer, and the two are different numbers.
 best = 0
 
 def height(node):
@@ -200,7 +205,8 @@ def height(node):
     # But what the PARENT needs is height, which is a different number.
     return 1 + max(left_height, right_height)
 
-# TOP-DOWN: constraint passed in
+# ---- SHAPE 3: top-down. A constraint travels DOWN as parameters. ----
+#      A different problem (BST validation), the same pattern.
 def valid(node, low, high):
     if not node:
         return True
@@ -282,7 +288,9 @@ while stack:
     if u in seen:
         continue
     seen.add(u)
-    stack.extend(v for v in g[u] if v not in seen)`,
+    for v in g[u]:
+        if v not in seen:
+            stack.append(v)`,
       deviations: [
         ['It is a grid', 'Islands, flood fill, word search.', 'The node is (row, col) and neighbours come from a delta loop. Sinking visited cells in place saves the seen set, but say that you are mutating the input.'],
         ['Search inward from the goal', 'Pacific-Atlantic water flow.', 'Do not test every cell outward. Start from the borders and search inward, then intersect the reachable sets. Reversing the direction is the whole insight.'],
@@ -302,12 +310,17 @@ while stack:
       template: `from collections import defaultdict, deque
 
 g = defaultdict(list)
-indeg = {u: 0 for u in nodes}
+indeg = {}
+for u in nodes:
+    indeg[u] = 0
 for u, v in edges:            # u must come before v
     g[u].append(v)
     indeg[v] += 1
 
-q = deque([u for u in nodes if indeg[u] == 0])
+q = deque()
+for u in nodes:
+    if indeg[u] == 0:         # nothing has to come before it
+        q.append(u)
 order = []
 while q:
     u = q.popleft()
@@ -344,7 +357,8 @@ for s, e in intervals:
     events.append((e, -1))
 events.sort()          # at equal times, -1 sorts before +1:
                        # a room frees before it is claimed (half-open)
-cur = best = 0
+cur = 0
+best = 0
 for _, delta in events:
     cur += delta
     best = max(best, cur)
@@ -533,7 +547,10 @@ def union(a, b):
     size[root_a] += size[root_b]
     return True
 
-groups = sum(1 for i in range(n) if find(i) == i)`,
+groups = 0
+for i in range(n):
+    if find(i) == i:              # a root stands for one group
+        groups += 1`,
       deviations: [
         ['Nodes are not integers', 'Emails, account names, strings.', 'Map each label to an index with a dict as you meet them. Choosing what the nodes ARE is usually the whole problem — accounts-merge unions by email.'],
         ['Find the edge that creates a cycle', 'Redundant connection.', 'union() returning False is the detector. The first such edge in input order is the answer.'],
@@ -588,7 +605,9 @@ root = {}
 for w in words:
     node = root
     for ch in w:
-        node = node.setdefault(ch, {})
+        if ch not in node:
+            node[ch] = {}         # first time down this branch
+        node = node[ch]
     node[END] = True              # WITHOUT this flag, "car" matches
                                   # when only "carpet" was inserted
 
@@ -620,13 +639,18 @@ def search(w, exact=True):
       cost: 'O(n) time, O(1) space.',
       structures: ['linked-list'],
       also: ['two-pointers'],
-      template: `slow = fast = head
+      template: `slow = head
+fast = head
+found_cycle = False
+
 while fast and fast.next:          # null-check BOTH
     slow = slow.next
     fast = fast.next.next
     if slow is fast:
-        break                      # cycle
-else:
+        found_cycle = True
+        break
+
+if not found_cycle:
     return None                    # ran off the end: no cycle
 
 # Cycle START: reset one pointer to head, advance both by one
@@ -683,8 +707,11 @@ for s, e in intervals:
       also: ['heap-topk', 'two-pointers'],
       template: `import heapq
 
-h = [(lst[0], i, 0) for i, lst in enumerate(lists) if lst]
-heapq.heapify(h)                     # (value, which list, index in it)
+h = []
+for i, lst in enumerate(lists):
+    if lst:                          # (value, which list, index in it)
+        h.append((lst[0], i, 0))
+heapq.heapify(h)
 
 out = []
 while h:

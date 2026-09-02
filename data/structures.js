@@ -145,7 +145,9 @@ for u, v in edges:
                             # common silent bug in graph problems
 
 # in-degrees, for topological sort
-indeg = {u: 0 for u in nodes}
+indeg = {}
+for u in nodes:
+    indeg[u] = 0
 for u, v in edges:
     indeg[v] += 1`,
       ops: [
@@ -281,7 +283,11 @@ def nbrs(r, c):
             yield nr, nc
 
 # Multi-source BFS: every source in the queue BEFORE the first step
-q = deque((r, c) for r in range(R) for c in range(C) if grid[r][c] == SRC)`,
+q = deque()
+for r in range(rows):
+    for c in range(cols):
+        if grid[r][c] == SRC:
+            q.append((r, c))`,
       ops: [
         ['visit every cell', 'O(R*C)', ''],
         ['BFS / DFS over the grid', 'O(R*C)', 'Each cell enters once if you mark on enqueue.'],
@@ -346,7 +352,9 @@ root = {}
 for w in words:
     node = root
     for ch in w:
-        node = node.setdefault(ch, {})
+        if ch not in node:
+            node[ch] = {}       # first time down this branch
+        node = node[ch]
     node[END] = True        # without this, "car" matches after
                             # inserting only "carpet"`,
       ops: [

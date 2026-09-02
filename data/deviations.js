@@ -33,7 +33,8 @@ Output:  [["eat", "tea", "ate"], ["tan", "nat"], ["bat"]]
       change: 'Derive a canonical key first, so that things which are different but equivalent collide on purpose.',
       code: `groups = defaultdict(list)
 for w in words:
-    key = ''.join(sorted(w))        # <- the only new line
+    letters = sorted(w)             # a LIST of characters, in order
+    key = ''.join(letters)          # <- glued back into a string
     groups[key].append(w)`,
       why: 'Anagrams are exactly the words with the same multiset of letters, and sorting is the cheapest canonical form of a multiset. A 26-length count tuple is O(n) rather than O(n log n) if pushed.' },
 
@@ -94,7 +95,7 @@ Output:  [1, 2]
 # then ONE of:
 counts.most_common(k)                     # simplest
 heapq.nlargest(k, counts, key=counts.get) # O(n log k)
-# buckets[c] for c in range(n, 0, -1)     # O(n), counts are bounded by n`,
+# or read buckets[c] downward, c = n .. 1 # O(n), counts are bounded by n`,
       why: 'Do not try to make the map maintain order. Pick the ordering structure by what k is: small k wants a heap, k near n wants a sort, and bounded counts allow buckets.' },
 
     { q: 'The keys are only lowercase letters. Can you do better?',
@@ -212,7 +213,8 @@ Both 3s survive. The output is 7 long.`,
       reduces: 'two pointers again, but one per array and both moving FORWARD, instead of one array with pointers converging.',
       base: 'The template runs both pointers over a single array, converging.',
       change: 'One pointer per array, both moving forward, advancing whichever is behind.',
-      code: `i = j = 0
+      code: `i = 0
+j = 0
 while i < len(a) and j < len(b):
     if a[i] <= b[j]:
         out.append(a[i])
@@ -494,12 +496,16 @@ frame 1000.`,
       change: 'Convert to an explicit stack, or raise the recursion limit and say why that is acceptable.',
       code: `stack = [(root, False)]
 while stack:
-    node, processed = stack.pop()
-    if processed:
+    node, expanded = stack.pop()
+    if expanded:
         visit(node)                       # postorder position
     else:
-        stack.append((node, True))
-        stack.extend((c, False) for c in (node.right, node.left) if c)`,
+        stack.append((node, True))        # come back AFTER the children
+        # Right is pushed first so that LEFT comes off the stack first.
+        if node.right:
+            stack.append((node.right, False))
+        if node.left:
+            stack.append((node.left, False))`,
       why: 'The two-pass flag is how you get postorder iteratively — you need to visit a node after its children, which a naive stack cannot express.' },
 
     { q: 'It is a graph with parent pointers, not a tree.',
@@ -534,8 +540,11 @@ answer would be smaller, and both must start at minute 0.`,
       reduces: 'the same level-by-level BFS, PLUS seeding the queue with every source before the first step.',
       base: 'The template seeds the queue with one start node.',
       change: 'Seed it with ALL sources before the first step. Nothing else changes.',
-      code: `q = deque((r, c) for r in range(R) for c in range(C)
-                if grid[r][c] == ROTTEN)          # every source, minute 0`,
+      code: `q = deque()
+for r in range(rows):
+    for c in range(cols):
+        if grid[r][c] == ROTTEN:
+            q.append((r, c))      # every source is in the queue at minute 0`,
       why: 'Running BFS once per source would be O(sources × cells). Multi-source BFS gets the same answer in one pass, because levels still measure time correctly when everything starts together.' },
 
     { q: 'Return the actual shortest path, not just its length.',
@@ -573,14 +582,70 @@ The cheapest route uses three edges and costs 3.`,
       reduces: 'nothing. BFS orders by edge count, and with weights that is no longer cost order, so the frontier needs a heap instead.',
       base: 'The template treats every step as equal, which is what makes arrival order equal shortest order.',
       change: 'Swap the queue for a heap — that is Dijkstra. If the weights are only 0 and 1, a deque with appendleft is enough.',
-      code: `heapq.heappush(heap, (dist + weight, nxt))     # Dijkstra
+      code: `# ---- SHAPE 1: any positive weights. A HEAP orders the frontier. ----
+import heapq
 
-# or, for 0/1 weights only:
-if weight == 0:
-    dq.appendleft(nxt)
-else:
-    dq.append(nxt)`,
-      why: 'With weights, a path with more edges can be cheaper, so first-arrival stops meaning cheapest. The 0-1 case is worth knowing because it keeps O(V+E).' },
+INF = float('inf')
+dist = {}
+for node in all_nodes:
+    dist[node] = INF
+dist[start] = 0
+
+# The QUEUE becomes a HEAP ordered by cost. That is the whole change.
+heap = [(0, start)]              # (cost so far, node) -- cost FIRST, so it sorts on cost
+
+while heap:
+    distance_so_far, u = heapq.heappop(heap)
+
+    # A stale entry: a better route to u turned up after this one was
+    # pushed. A heap cannot delete from the middle, so we skip instead.
+    if distance_so_far > dist[u]:
+        continue
+
+    # A node is final when it POPS -- not when it is pushed. That is the
+    # reversal from the BFS template, which marks on ENQUEUE.
+    if u == goal:
+        return distance_so_far
+
+    for v, weight in g[u]:
+        new_distance = distance_so_far + weight
+        if new_distance < dist[v]:
+            dist[v] = new_distance
+            heapq.heappush(heap, (new_distance, v))
+
+return -1
+
+
+# ---- SHAPE 2: weights are ONLY 0 or 1. A DEQUE replaces the heap. ----
+from collections import deque
+
+INF = float('inf')
+dist = {}
+for node in all_nodes:
+    dist[node] = INF
+dist[start] = 0
+
+dq = deque([start])
+while dq:
+    u = dq.popleft()
+
+    for v, weight in g[u]:
+        new_distance = dist[u] + weight
+        if new_distance < dist[v]:
+            dist[v] = new_distance
+
+            # The deque never holds more than TWO distinct distances,
+            # d and d + 1. Putting free moves at the front and paid ones
+            # at the back keeps it sorted without a heap at all.
+            if weight == 0:
+                dq.appendleft(v)     # same distance -> front of the line
+            else:
+                dq.append(v)         # one further  -> back of the line
+
+if dist[goal] == INF:
+    return -1                        # never reached
+return dist[goal]`,
+      why: 'With weights, a path with more edges can be cheaper, so first-arrival stops meaning cheapest. Note the reversal: BFS marks a node final on ENQUEUE, Dijkstra only when it POPS, because a cheaper route can still arrive later. The 0-1 case is worth knowing because it keeps O(V+E).' },
 
     { q: 'Neighbours are words differing by one letter, over a 10^4-word dictionary.',
       problem: 'Transform a start word into an end word one letter at a time, where every intermediate must be in a given dictionary. Return the fewest words in such a sequence, or 0 if impossible.',
@@ -594,7 +659,8 @@ hit -> hot -> dot -> dog -> cog`,
       code: `buckets = defaultdict(list)
 for w in words:
     for i in range(len(w)):
-        buckets[w[:i] + '*' + w[i+1:]].append(w)`,
+        pattern = w[:i] + '*' + w[i+1:]    # blank out one letter
+        buckets[pattern].append(w)`,
       why: 'All-pairs comparison is O(n^2 · L). Bucketing makes neighbour lookup O(L) per word, which is the difference between passing and timing out on word ladder.' },
   ],
 
@@ -716,14 +782,22 @@ difference only. Taking more invents constraints.`,
       reduces: 'the same topological sort, PLUS deriving the edges. All the difficulty is upstream of the algorithm.',
       base: 'The template is handed its edges.',
       change: 'The hard part moves to deriving them: each adjacent word pair gives exactly ONE constraint, at the first differing character.',
-      code: `for a, b in zip(words, words[1:]):
-    for x, y in zip(a, b):
-        if x != y:
-            edges.add((x, y))     # only the FIRST difference
+      code: `for i in range(len(words) - 1):
+    a = words[i]
+    b = words[i + 1]
+
+    found_difference = False
+    shared = min(len(a), len(b))
+    for j in range(shared):
+        if a[j] != b[j]:
+            edges.add((a[j], b[j]))   # only the FIRST difference counts
+            found_difference = True
             break
-    else:
-        if len(a) > len(b):
-            return ''             # "abc" before "ab" is invalid input`,
+
+    # Same all the way through the shared prefix. Then the shorter word
+    # has to come first -- "abc" before "ab" is invalid input.
+    if not found_difference and len(a) > len(b):
+        return ''`,
       why: 'Taking more than the first difference invents constraints that the input does not imply. The prefix case is the edge case interviewers check for.' },
 
     { q: 'Break ties lexicographically.',
@@ -835,7 +909,8 @@ Indistinguishable.`,
       reduces: 'nothing — it is the same problem with the constants changed, and the answer is to stop using the pattern.',
       base: 'The template keeps a size-k heap for O(n log k).',
       change: 'Just sort. Say why the heap has stopped paying.',
-      code: `return sorted(xs)[-k:]        # log k ~= log n now`,
+      code: `ordered = sorted(xs)
+return ordered[-k:]           # the last k are the k largest; log k ~= log n`,
       why: 'The heap wins only while k is small. Naming the crossover shows you understand why the heap was there rather than reaching for it reflexively.' },
 
     { q: 'Give me the running median of a stream.',
@@ -847,10 +922,14 @@ addNum(3)  ->  median 4`,
       reduces: 'the same heap idea, PLUS a second heap facing the other way — one heap gives an extreme, and a median is not an extreme.',
       base: 'The template gives you one end of the order.',
       change: 'Two heaps facing each other, kept balanced in size.',
-      code: `heapq.heappush(low, -x)                       # max-heap, lower half
-heapq.heappush(high, -heapq.heappop(low))     # move the largest up
+      code: `heapq.heappush(low, -x)               # low is a MAX-heap: values kept negated
+
+largest_low = -heapq.heappop(low)     # undo the negation to read the real value
+heapq.heappush(high, largest_low)     # move it up to the higher half
+
 if len(high) > len(low):
-    heapq.heappush(low, -heapq.heappop(high)) # rebalance`,
+    smallest_high = heapq.heappop(high)
+    heapq.heappush(low, -smallest_high)   # negate again on the way back in`,
       why: 'The median sits between the halves, so it is at one or both tops. A single heap can never give you a middle.' },
 
     { q: 'Do the top-k frequent in O(n).',
@@ -862,7 +941,9 @@ Counts are 3, 2 and 1 -- and no count can exceed n = 6.`,
       reduces: 'the same counting, PLUS bucketing by count instead of heaping — the values being ordered are bounded by n.',
       base: 'The template pays log k per element.',
       change: 'Bucket by frequency instead — counts cannot exceed n, so the range is bounded.',
-      code: `buckets = [[] for _ in range(n + 1)]
+      code: `buckets = []
+for _ in range(n + 1):
+    buckets.append([])        # a FRESH list each time; [[]] * n shares one
 for val, c in Counter(xs).items():
     buckets[c].append(val)
 # read buckets from the top down`,
@@ -1132,8 +1213,11 @@ A spanning tree on V nodes has exactly V-1 edges.`,
       reduces: 'the same template, PLUS sorting the edges by weight first — that is Kruskal, and greedy plus Union-Find is all of it.',
       base: 'The template answers connectivity questions.',
       change: 'Sort edges by weight and union greedily. That is Kruskal, and MST falls out.',
-      code: `edges.sort(key=lambda e: e[2])
-total = sum(w for u, v, w in edges if union(u, v))`,
+      code: `edges.sort(key=lambda e: e[2])     # cheapest edge first
+total = 0
+for u, v, w in edges:
+    if union(u, v):                # True only if it joined two groups
+        total += w`,
       why: 'MST is greedy plus Union-Find, both of which you already have. Two lines on top of this template.' },
   ],
 
@@ -1208,7 +1292,8 @@ after "mouse": mouse, mousepad`,
       reduces: 'the same trie, PLUS precomputing the best three AT each node so a keystroke is a pointer move rather than a subtree walk.',
       base: 'The template walks to a node, then searches the subtree below it.',
       change: 'Precompute the best three AT each node while inserting.',
-      code: `node.setdefault('top', [])
+      code: `if 'top' not in node:
+    node['top'] = []
 if len(node['top']) < 3:
     node['top'].append(word)      # words inserted in sorted order`,
       why: 'A subtree walk per keystroke is far too slow for a search box. Storing the answer at the node makes each keystroke a single pointer move.' },
@@ -1224,7 +1309,10 @@ search("b..")  ->  True`,
       base: 'The template follows exactly one child per character.',
       change: 'On a wildcard, recurse into all children. The trie becomes a search space rather than a lookup.',
       code: `if ch == '.':
-    return any(search(rest, child) for child in node.values())`,
+    for child in node.values():    # a dot has to try every branch
+        if search(rest, child):
+            return True
+    return False`,
       why: 'Worst case degrades towards scanning the dictionary, and saying that out loud is part of the answer.' },
 
     { q: 'Find every dictionary word hidden in a grid of letters.',
@@ -1559,10 +1647,17 @@ Output:  1
 
 Sorting gives [10, 20, 30] and the smallest at index 0,
 which is the wrong answer to the question asked.`,
-      reduces: 'the same sort applied to the INDICES rather than the values, keyed by the values.',
+      reduces: 'the same sort applied to (value, index) PAIRS, so the original position survives the sort.',
       base: 'The template reorders the data in place.',
-      change: 'Sort the indices rather than the values.',
-      code: `order = sorted(range(len(xs)), key=lambda i: xs[i])`,
+      change: 'Pair each value with its index and sort the pairs. Tuples compare element-wise, so value order falls out for free.',
+      code: `pairs = []
+for i, x in enumerate(xs):
+    pairs.append((x, i))      # value FIRST, so sorting orders by value
+pairs.sort()
+
+order = []                    # the original indices, in value order
+for value, i in pairs:
+    order.append(i)`,
       why: 'The answer often needs original indices — "return the index of" is the tell. Sorting values first throws away exactly the thing being asked for.' },
   ],
 
@@ -1592,7 +1687,9 @@ A before C, exactly as in the input.`,
       reduces: 'the same counting, PLUS bucketing the OBJECTS rather than counting occurrences — which makes it stable by construction.',
       base: 'The template counts values, which discards the objects.',
       change: 'Bucket the objects themselves, appending in input order.',
-      code: `buckets = [[] for _ in range(k)]
+      code: `buckets = []
+for _ in range(k):
+    buckets.append([])        # a FRESH list each time; [[]] * k shares one
 for obj in items:
     buckets[obj.score].append(obj)     # stable by construction`,
       why: 'Appending in input order makes it stable for free, which matters when it is a pass inside radix sort.' },
@@ -1654,7 +1751,8 @@ subarray. It passes every test containing a positive.`,
       reduces: 'nothing — the base template is already correct BECAUSE it initialises from xs[0]. This is why.',
       base: 'The template initialises cur and best from the first element.',
       change: 'Nothing — but only because of that initialisation. Starting from 0 returns 0, which is wrong.',
-      code: `best = cur = xs[0]      # NOT best = 0`,
+      code: `cur = xs[0]
+best = xs[0]            # NOT best = 0`,
       why: 'The empty subarray is not usually allowed, so the answer should be the least negative element. This one-token difference is the classic Kadane bug.' },
 
     { q: 'Maximum PRODUCT instead of sum.',
@@ -1839,7 +1937,10 @@ XOR gives 2 ^ 2 ^ 3 ^ 2 = 3 here by luck, but
       base: 'XOR cancels PAIRS, so it does nothing useful against triples.',
       change: 'Count set bits per position and take them modulo 3.',
       code: `for b in range(32):
-    if sum((x >> b) & 1 for x in xs) % 3:
+    ones = 0
+    for x in xs:
+        ones += (x >> b) & 1       # how many numbers have bit b set
+    if ones % 3:
         ans |= 1 << b`,
       why: 'The XOR trick is specific to pairs. Generalising to k copies means counting per bit position modulo k.' },
 
@@ -2206,8 +2307,11 @@ A path from A back to A with negative total.`,
       reduces: 'nothing — the table already contains the answer. One check of the diagonal, and it names every node on a negative cycle.',
       base: 'The template fills the all-pairs distance table.',
       change: 'Check the diagonal afterwards — a negative d[i][i] means i sits on a negative cycle.',
-      code: `any(d[i][i] < 0 for i in range(n))`,
-      why: 'A path from i back to i with negative total is precisely a negative cycle through i. One line after the triple loop.' },
+      code: `on_negative_cycle = []
+for i in range(n):
+    if d[i][i] < 0:            # i reaches itself for less than nothing
+        on_negative_cycle.append(i)`,
+      why: 'A path from i back to i with negative total is precisely a negative cycle through i. One pass over the diagonal after the triple loop, and it names every node on one.' },
 
     { q: 'I only need paths from one source.',
       problem: 'Shortest paths from a single source on a graph with 1000 nodes. Floyd-Warshall gives all pairs, which includes the row you want.',

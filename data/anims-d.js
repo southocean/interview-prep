@@ -395,7 +395,7 @@ Object.assign(window.ANIMS, {
     cells: ['c', 'a', 'r', 'p', 'e', 't'],
     label: 'characters:',
     frames: [
-      { mark: [0], stat: 'root -> c', note: 'One node per character. setdefault creates the child if it is missing.' },
+      { mark: [0], stat: 'root -> c', note: 'One node per character. If the child is missing, create it, then step into it.' },
       { mark: [0, 1, 2], stat: 'c -> a -> r,  mark END at r', note: '"car" inserted. The END flag is what records that a word finishes here.' },
       { mark: [3, 4, 5], stat: 'carpet reuses c-a-r, then adds p-e-t', note: 'The shared prefix is stored ONCE. That is the whole point of the structure.' },
       { mark: [2], stat: 'search("car"): walk to r, END present  ->  True', note: 'Cost is the length of the word, not the size of the dictionary.' },
