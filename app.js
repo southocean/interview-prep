@@ -342,21 +342,51 @@
 
   // ------------------------------------------------------------ pseudocode
   /*
-   * The framework in words, above the real code. Control words in caps, no
-   * language at all -- the point is that it reads aloud and still makes sense.
+   * The framework in words: control words in caps, no language at all -- the
+   * point is that it reads aloud and still makes sense.
    *
-   * Hidden by a body class rather than by re-rendering, so the toggle is
-   * instant and does not disturb scroll position or a running animation.
+   * The two versions OCCUPY THE SAME SPACE, switched by a tab strip, rather
+   * than stacking. Two full-height code blocks per section pushed the
+   * deviations off the screen, and the whole value of the plain-English version
+   * is that you read it INSTEAD of the code, not alongside it.
+   *
+   * Both are always in the DOM and one is hidden by CSS, so switching is
+   * instant, keeps scroll position, and costs no re-render.
    */
-  function pseudoBlock(id) {
+  function pseudoWanted() {
+    // Default WORDS: only an explicit 'off' opens on the code.
+    try { return localStorage.getItem('prep-pseudo') !== 'off'; } catch (e) { return true; }
+  }
+
+  /** A code block, paired with its plain-English version where one exists. */
+  function codeBlock(id, codeText) {
     var text = PSEUDO[id];
-    if (!text) return null;
-    return el('div', { class: 'pseudo' }, [
-      el('div', { class: 'pseudo-tag' }, [
-        el('span', { text: 'The framework, in words' }),
+    if (!text) return pre(codeText);
+
+    function tab(which, label) {
+      return el('button', {
+        type: 'button', class: 'dual-tab', 'data-w': which,
+        role: 'tab', 'aria-selected': 'false',
+      }, [el('span', { text: label })]);
+    }
+    var box = el('div', { class: 'dual', 'data-show': pseudoWanted() ? 'words' : 'code' }, [
+      el('div', { class: 'dual-tabs', role: 'tablist' }, [
+        tab('words', 'In words'), tab('code', 'Code'),
       ]),
-      el('pre', {}, [el('code', { text: text })]),
+      el('pre', { class: 'dual-words' }, [el('code', { text: text })]),
+      el('pre', { class: 'dual-code' }, [el('code', { text: codeText })]),
     ]);
+    markTabs(box);
+    return box;
+  }
+
+  /** Keeps the tab strip's aria state in step with the container. */
+  function markTabs(box) {
+    var show = box.getAttribute('data-show');
+    var tabs = box.querySelectorAll('.dual-tab');
+    Array.prototype.forEach.call(tabs, function (t) {
+      t.setAttribute('aria-selected', t.dataset.w === show ? 'true' : 'false');
+    });
   }
 
   // -------------------------------------------------------- worked example
@@ -459,24 +489,43 @@
   })();
 
   // ------------------------------------------------------- pseudocode toggle
+  /*
+   * Two levels, deliberately. The header button is the DEFAULT -- which of the
+   * two every block opens on, remembered across pages and visits. The tab strip
+   * on a block flips that one block, without disturbing the default, because
+   * "show me the code for this one" should not change what the next page does.
+   */
   (function pseudoToggle() {
     var btn = document.getElementById('pseudo');
     if (!btn) return;
 
-    function stored() {
-      // Default ON: only an explicit 'off' turns it off, so a first-time
-      // visitor and a cleared browser both get it.
-      try { return localStorage.getItem('prep-pseudo') !== 'off'; } catch (e) { return true; }
-    }
-    function apply(on) {
-      document.body.classList.toggle('no-pseudo', !on);
+    function apply(on, persist) {
       btn.setAttribute('aria-pressed', on ? 'true' : 'false');
-      try { localStorage.setItem('prep-pseudo', on ? 'on' : 'off'); } catch (e) {}
+      if (persist) {
+        try { localStorage.setItem('prep-pseudo', on ? 'on' : 'off'); } catch (e) {}
+      }
+      // Bring every block already on the page into line with the new default.
+      var boxes = document.querySelectorAll('.dual');
+      Array.prototype.forEach.call(boxes, function (box) {
+        box.setAttribute('data-show', on ? 'words' : 'code');
+        markTabs(box);
+      });
     }
     btn.addEventListener('click', function () {
-      apply(btn.getAttribute('aria-pressed') !== 'true');
+      apply(btn.getAttribute('aria-pressed') !== 'true', true);
     });
-    apply(stored());
+
+    /* Delegated, so it keeps working across every re-render without a rewire
+       step that a new page renderer could forget. */
+    main.addEventListener('click', function (ev) {
+      var t = ev.target.closest ? ev.target.closest('.dual-tab') : null;
+      if (!t) return;
+      var box = t.closest('.dual');
+      box.setAttribute('data-show', t.dataset.w);
+      markTabs(box);
+    });
+
+    apply(pseudoWanted(), false);
   })();
 
   // ------------------------------------------------------------------ router
@@ -580,8 +629,7 @@
       animBlock(p.id),
 
       el('h2', { class: 'sec', text: 'Template' }),
-      pseudoBlock(p.id),
-      pre(p.template),
+      codeBlock(p.id, p.template),
 
       deviationsBlock(p.id, p.deviations),
 
@@ -678,8 +726,7 @@
       animBlock(t.id),
 
       el('h2', { class: 'sec', text: 'Code' }),
-      pseudoBlock(t.id),
-      pre(t.code),
+      codeBlock(t.id, t.code),
 
       deviationsBlock(t.id, null),
 
