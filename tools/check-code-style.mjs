@@ -36,6 +36,73 @@ import { join } from 'node:path';
 
 const DATA = 'data';
 
+/* Is there a `for ... in ...` inside a bracket pair? That is a comprehension or
+   a generator expression, whichever bracket it happens to sit in -- [] for a
+   list, {} for a dict or set, () for a genexp or a bare argument to a call. */
+function isComprehension(text) {
+  for (let i = 0; i < text.length; i++) {
+    if (!'([{'.includes(text[i])) continue;
+    let depth = 0;
+    for (let j = i; j < text.length; j++) {
+      if ('([{'.includes(text[j])) depth++;
+      else if (')]}'.includes(text[j])) {
+        depth--;
+        if (depth === 0) {
+          if (/\bfor\s+.+\s+in\s+/.test(text.slice(i, j + 1))) return true;
+          break;
+        }
+      }
+    }
+  }
+  return false;
+}
+
+/* Physical lines joined while brackets stay open, so a construct split across
+   lines is tested as the one expression it really is. Returns the joined text
+   with the physical line number it started on. */
+function logicalLines(codeLines) {
+  const out = [];
+  let buf = '';
+  let depth = 0;
+  let start = 0;
+  for (let i = 0; i < codeLines.length; i++) {
+    const line = codeLines[i];
+    if (!buf) start = i;
+    buf += (buf ? ' ' : '') + line.trim();
+    for (const c of line) {
+      if ('([{'.includes(c)) depth++;
+      else if (')]}'.includes(c)) depth--;
+    }
+    if (depth <= 0) {
+      out.push({ text: buf, n: start + 1, raw: codeLines[start] });
+      buf = '';
+      depth = 0;
+    }
+  }
+  if (buf) out.push({ text: buf, n: start + 1, raw: codeLines[start] });
+  return out;
+}
+
+/* `else:` belongs to a loop when the nearest block header at its own indent is
+   a for or a while. That else runs only if the loop did NOT break. */
+function loopElseLines(codeLines) {
+  const hits = [];
+  for (let i = 0; i < codeLines.length; i++) {
+    if (codeLines[i].trim() !== 'else:') continue;
+    const indent = codeLines[i].match(/^\s*/)[0].length;
+    for (let j = i - 1; j >= 0; j--) {
+      const t = codeLines[j];
+      if (!t.trim() || /^\s*#/.test(t)) continue;
+      const ind = t.match(/^\s*/)[0].length;
+      if (ind > indent) continue;
+      if (ind < indent) break;
+      if (/^\s*(for|while)\b/.test(t)) hits.push(i + 1);
+      break;   // the nearest header at this indent decides it
+    }
+  }
+  return hits;
+}
+
 /* Each rule: what it matches, and what to do instead. The advice matters more
    than the detection -- a gate that only says "no" teaches nothing. */
 const RULES = [
@@ -78,14 +145,34 @@ const RULES = [
     say: 'Conditional expression. Use a plain if/else block -- four lines that read in order beat one that reads inside out.',
   },
   {
-    id: 'nested-comprehension',
-    re: /\[[^\]]*\bfor\b[^\]]*\bfor\b/,
-    say: 'Two for-clauses in one comprehension. Use nested loops.',
+    // Supersedes the old nested-comprehension rule, which only looked inside
+    // [] and so missed deque(... for ... for ... if ...) entirely.
+    id: 'comprehension',
+    test: (line) => isComprehension(line),
+    say: 'A comprehension or generator expression. Build the result with a loop that appends -- and never pass a bare `for` into a function call.',
   },
   {
     id: 'get-default',
     re: /\.get\([^)]*,[^)]*\)/,
     say: 'dict.get(key, default) hides a branch. Use an explicit `if key in d:` or a defaultdict, and say which.',
+  },
+  {
+    id: 'setdefault',
+    re: /\.setdefault\(/,
+    say: 'dict.setdefault hides both a branch and an assignment. Write `if k not in d: d[k] = ...` then read d[k].',
+  },
+  {
+    id: 'loop-else',
+    // `else:` at the indent of a for/while runs only when the loop did NOT
+    // break. Almost nobody recalls that under pressure. Detected in the
+    // snippet pass below, which can see the surrounding lines.
+    test: () => false,
+    say: 'A for/while `else` clause. Set an explicit found = False flag before the loop and test it after.',
+  },
+  {
+    id: 'chained-assign',
+    re: /^\s*\w+\s*=\s*\w+\s*=\s*\S/,
+    say: 'Chained assignment (a = b = 0). Give each name its own line.',
   },
   {
     id: 'reduce',
@@ -111,7 +198,11 @@ const RULES = [
 function extractSnippets(src, file) {
   const out = [];
   // Track the most recent `id: 'x'` so a violation can be reported against a page.
-  const lines = src.split('\n');
+  // Normalise line endings first. JavaScript counts a carriage return as a
+  // line terminator, so `.` will not match one and a trailing `$` never fires.
+  // On CRLF files that silently extracted ZERO snippets from every data file,
+  // and the gate then passed on an empty set.
+  const lines = src.split(/\r?\n/);
   let currentId = '(top of file)';
   let inCode = false;
   let buf = [];
@@ -165,29 +256,69 @@ for (const f of files) {
   snippets = snippets.concat(extractSnippets(readFileSync(join(DATA, f), 'utf8'), f));
 }
 
+const LOOP_ELSE = RULES.find((r) => r.id === 'loop-else');
+
 const hits = [];
 for (const s of snippets) {
   const codeLines = s.code.split('\n');
+
+  // Strip docstrings and comments once, keeping line positions, so both the
+  // per-line rules and the joined-expression rules see the same clean text.
+  const clean = [];
   let inDocstring = false;
-  for (let i = 0; i < codeLines.length; i++) {
-    const line = codeLines[i];
-    // Docstrings and comments are prose, not code, and may say anything.
+  for (const line of codeLines) {
     const fences = (line.match(/"""/g) || []).length;
     const wasInDocstring = inDocstring;
     if (fences % 2 === 1) inDocstring = !inDocstring;
-    if (wasInDocstring || inDocstring || fences > 0) continue;
-    if (/^\s*#/.test(line)) continue;
-    const bare = line.replace(/#.*$/, '');
+    if (wasInDocstring || inDocstring || fences > 0) clean.push('');
+    else if (/^\s*#/.test(line)) clean.push('');
+    else clean.push(line.replace(/#.*$/, ''));
+  }
+
+  for (const n of loopElseLines(clean)) {
+    hits.push({ ...s, rule: LOOP_ELSE, line: 'else:   (attached to a loop)', n });
+  }
+
+  // Rules run against LOGICAL lines -- a construct split over several physical
+  // lines is one expression and has to be tested as one.
+  for (const { text, n } of logicalLines(clean)) {
+    if (!text.trim()) continue;
     for (const rule of RULES) {
-      const bad = rule.test ? rule.test(bare) : rule.re.test(bare);
+      if (rule.id === 'loop-else') continue;
+      const bad = rule.test ? rule.test(text) : rule.re.test(text);
       if (bad) {
-        hits.push({ ...s, rule, line: bare.trim(), n: i + 1 });
+        hits.push({ ...s, rule, line: text.trim().slice(0, 100), n });
       }
     }
   }
 }
 
-console.log(`code style: ${snippets.length} snippets across ${files.length} data files`);
+/* Animation captions carry code too -- `stat: 'buckets = [[] for _ in ...]'` is
+ * a comprehension on the screen even though it is not in a `code:` field. The
+ * snippet pass above cannot see it, so scan every stat: string as well.
+ *
+ * Only the comprehension rule runs here. A caption is allowed to be prose, and
+ * a plain `for c in range(...)` in one describes a loop rather than being one. */
+let captions = 0;
+for (const f of files) {
+  const lines = readFileSync(join(DATA, f), 'utf8').split(/\r?\n/);
+  let currentId = '(top of file)';
+  for (let i = 0; i < lines.length; i++) {
+    const keyMatch = lines[i].match(/^\s*'([\w/-]+)':\s*\{/);
+    if (keyMatch) currentId = keyMatch[1];
+    const stat = lines[i].match(/\bstat:\s*'((?:[^'\\]|\\.)*)'/);
+    if (!stat) continue;
+    captions++;
+    if (isComprehension(stat[1])) {
+      hits.push({
+        file: f, id: currentId, field: 'stat', rule: RULES.find((r) => r.id === 'comprehension'),
+        line: stat[1].slice(0, 100), n: i + 1,
+      });
+    }
+  }
+}
+
+console.log(`code style: ${snippets.length} snippets and ${captions} captions across ${files.length} data files`);
 
 if (!hits.length) {
   console.log('           all clear -- nothing optimised for length at the cost of reading');
